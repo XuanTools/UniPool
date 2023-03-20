@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace XuanTools.UniPool
@@ -115,6 +114,7 @@ namespace XuanTools.UniPool
             GameObject obj;
             if (!Instance.m_UniPools.TryGetValue(prefab, out var pool))
             {
+                // Creat pool if not exist.
                 RegistPool(prefab, 0);
                 pool = Instance.m_UniPools[prefab];
             }
@@ -131,6 +131,7 @@ namespace XuanTools.UniPool
             GameObject obj;
             if (!Instance.m_UniPools.TryGetValue(prefab, out var pool))
             {
+                // Creat pool if not exist.
                 RegistPool(prefab, 0);
                 pool = Instance.m_UniPools[prefab];
             }
@@ -159,7 +160,7 @@ namespace XuanTools.UniPool
         {
             if (Instance.m_UniPools.TryGetValue(prefab, out var pool))
             {
-                //Check if contain to avoid cache same object again before cache recycle.
+                // Check if contain to avoid cache same object again before cache recycle.
                 if (!pool.m_Cache.Contains(obj))
                     pool.Cache(obj);
             }
@@ -283,42 +284,6 @@ namespace XuanTools.UniPool
             return Instance.m_ObjectToPrefabDict.ContainsKey(obj);
         }
 
-        public static IEnumerable<T> GetPooledObjects<T>(T prefab) where T : Component
-        {
-            var list = GetPooledObjects(prefab.gameObject);
-            return list?.Cast<T>();
-        }
-        public static IEnumerable<GameObject> GetPooledObjects(GameObject prefab)
-        {
-            return Instance.m_UniPools.GetValueOrDefault(prefab, null)?.m_Pool;
-        }
-
-        public static bool TryGetPooledObjects<T>(T prefab, out IEnumerable<T> objects) where T : Component
-        {
-            if (TryGetPooledObjects(prefab.gameObject, out var list))
-            {
-                objects = Enumerable.Cast<T>(list);
-                return true;
-            }
-            else
-            {
-                objects = null;
-                return false;
-            }
-        }
-        public static bool TryGetPooledObjects(GameObject prefab, out IEnumerable<GameObject> objects)
-        {
-            if (Instance.m_UniPools.TryGetValue(prefab, out var pool))
-            {
-                objects = Enumerable.Concat(pool.m_Pool, pool.m_Cache);
-                return true;
-            }
-            else
-            {
-                objects = null;
-                return false;
-            }
-        }
 
         public static void DisposePooled<T>(T prefab) where T : Component
         {

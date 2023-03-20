@@ -126,6 +126,18 @@ namespace XuanTools.UniPool
             tempList.Clear();
         }
 
+        public bool Contain(GameObject obj) 
+        {
+            if (m_Pool.Contains(obj) || m_Cache.Contains(obj) || m_Active.Contains(obj)) 
+            {
+                return true;
+            }
+            else 
+            { 
+                return false; 
+            }
+        }
+
         public void ClearPooled()
         {
             foreach (GameObject obj in m_Pool)
