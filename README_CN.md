@@ -1,6 +1,6 @@
 ﻿# UniPool
 
-[![license](https://img.shields.io/badge/license-MIT-green)](https://github.com/XuanTools/UniPool/blob/main/LICENSE)
+[![Readme_EN](https://img.shields.io/badge/UniPool-Readme_EN-red)](https://github.com/XuanTools/UniPool/blob/main/README.md) [![license](https://img.shields.io/badge/license-MIT-green)](https://github.com/XuanTools/UniPool/blob/main/LICENSE)
 
 一个为GameObject打造的，简单易用、性能优秀的对象池管理工具
 
@@ -12,7 +12,7 @@
 * 带有一个单例类UniPoolManager，用于管理每一个物体的对象池
 * 延迟回收机制，优化同一帧内回收和获取大量物体时的性能
 * 扩展GameObject的方法，能方便地生成、回收物体和管理对象池
-* 通过使用泛型，Component拥有和一样的扩展方法，能方便地对组件所挂在的物体执行操作
+* 通过使用泛型，Component拥有和物体一样的扩展方法，能方便地对组件所挂在的物体执行操作
 
 ## 目录
 
