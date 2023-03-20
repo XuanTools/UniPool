@@ -1,4 +1,7 @@
 ﻿# UniPool
+
+[![license](https://img.shields.io/badge/license-MIT-green)](https://github.com/XuanTools/UniPool/blob/main/LICENSE)
+
 一个为GameObject打造的，简单易用、性能优秀的对象池管理工具
 
 > 在游戏中会出现大量重复的物体需要频繁的创建和销毁；比如子弹，敌人，成就列表的格子等；频繁的创建删除物体会造成很大的开销；
@@ -18,6 +21,7 @@
 - [UniTask](#unitask)
 - [UniTaskManager](#unitaskmanager)
 - [安装](#安装)
+- [工程](#工程)
 - [License](#license)
 
 ## 快速入门
@@ -78,6 +82,12 @@ UniTaskManager是一个管理场景中对象池的单例，其内部使用UniTas
 如果遇到兼容问题，请选择兼容性更高的版本导入
 
 如果仍遇到问题，您也可以选择手动将错误修复（这将不会很难）
+
+## 工程
+
+项目工程包含了一个性能测试场景，对比Instantiate与ObjectPool和UniPool之间的性能差异
+
+建议不要开启profiler，否则可能会导致UniPool测试帧率大幅降低
 
 ## License
 
