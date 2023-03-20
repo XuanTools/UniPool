@@ -6,13 +6,9 @@ public class ObjectSpawner : MonoBehaviour
     public GameObject prefab;
     public int count;
 
-    public Transform instance;
+    public Transform instantiate;
     public Transform objectPool;
     public Transform uniPool;
-
-    public bool byInstance = false;
-    public bool byObjectPool = false;
-    public bool byUniPool = false;
 
     private ObjectPool<GameObject> pool;
 
@@ -26,9 +22,9 @@ public class ObjectSpawner : MonoBehaviour
 
     private void Update()
     {
-        foreach (Transform obj in instance.GetComponentsInChildren<Transform>())
+        foreach (Transform obj in instantiate.GetComponentsInChildren<Transform>())
         {
-            if (obj != instance) Destroy(obj.gameObject);
+            if (obj != instantiate) Destroy(obj.gameObject);
         }
         foreach (Transform obj in objectPool.GetComponentsInChildren<Transform>())
         {
@@ -39,14 +35,14 @@ public class ObjectSpawner : MonoBehaviour
             if (obj != uniPool) obj.Recycle();
         }
 
-        if (byInstance)
+        if (TestSettings.byInstantiate)
         {
             for (int i = 0; i < count; i++)
             {
-                Instantiate(prefab, Random.insideUnitCircle * 12f, Random.rotation, instance);
+                Instantiate(prefab, Random.insideUnitCircle * 12f, Random.rotation, instantiate);
             }
         }
-        else if (byObjectPool)
+        else if (TestSettings.byObjectPool)
         {
             for (int i = 0; i < count; i++)
             {
@@ -55,7 +51,7 @@ public class ObjectSpawner : MonoBehaviour
                 obj.transform.SetLocalPositionAndRotation(Random.insideUnitCircle * 12f, Random.rotation);
             }
         }
-        else if (byUniPool)
+        else if (TestSettings.byUniPool)
         {
             for (int i = 0; i < count; i++)
             {
