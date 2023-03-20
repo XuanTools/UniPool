@@ -1,9 +1,9 @@
 using UnityEngine;
+using UnityEngine.Pool;
 
 public class ObjectSpawner : MonoBehaviour
 {
     public GameObject prefab;
-
     public int count;
 
     public Transform instance;
@@ -14,6 +14,16 @@ public class ObjectSpawner : MonoBehaviour
     public bool byObjectPool = false;
     public bool byUniPool = false;
 
+    private ObjectPool<GameObject> pool;
+
+    private void Start()
+    {
+        pool = new(() => Instantiate(prefab),
+            obj => obj.SetActive(true),
+            obj => obj.SetActive(false),
+            obj => Destroy(obj));
+    }
+
     private void Update()
     {
         foreach (Transform obj in instance.GetComponentsInChildren<Transform>())
@@ -22,7 +32,7 @@ public class ObjectSpawner : MonoBehaviour
         }
         foreach (Transform obj in objectPool.GetComponentsInChildren<Transform>())
         {
-            if (obj.gameObject.activeSelf && obj != objectPool) ObjectPoolExtention.ObjectPoolExtensions.Recycle(obj);
+            if (obj.gameObject.activeSelf && obj != objectPool) pool.Release(obj.gameObject);
         }
         foreach (Transform obj in uniPool.GetComponentsInChildren<Transform>())
         {
@@ -40,7 +50,9 @@ public class ObjectSpawner : MonoBehaviour
         {
             for (int i = 0; i < count; i++)
             {
-                ObjectPoolExtention.ObjectPoolExtensions.Spawn(prefab, objectPool, Random.insideUnitCircle * 12f, Random.rotation);
+                var obj = pool.Get();
+                obj.transform.SetParent(objectPool);
+                obj.transform.SetLocalPositionAndRotation(Random.insideUnitCircle * 12f, Random.rotation);
             }
         }
         else if (byUniPool)
