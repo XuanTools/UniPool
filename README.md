@@ -1,6 +1,6 @@
 ﻿# UniPool
 
-[![Readme_CN](https://img.shields.io/badge/UniPool-Readme_CN-red)](https://github.com/XuanTools/UniPool/blob/main/README_CN.md) [![license](https://img.shields.io/badge/license-MIT-green)](https://github.com/XuanTools/UniPool/blob/main/LICENSE)
+[![Readme_CN](https://img.shields.io/badge/UniPool-中文文档-red)](https://github.com/XuanTools/UniPool/blob/main/README_CN.md) [![license](https://img.shields.io/badge/license-MIT-green)](https://github.com/XuanTools/UniPool/blob/main/LICENSE)
 
 A tool of object pool with good performance and is easy to use for unity.
 
