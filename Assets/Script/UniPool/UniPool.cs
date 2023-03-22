@@ -229,9 +229,9 @@ namespace XuanTools.UniPool
         public int CountInactive { get => m_UniPool.CountInactive; }
         public int MaxSize { get => m_UniPool.MaxSize; }
 
-        public UniPool(GameObject prefab, int defaultCapacity = 10, int maxSize = 10000, Func<T> createFunc = null, Action<T> actionOnGet = null, Action<T> actionOnRelease = null, Action<T> actionOnDestroy = null)
+        public UniPool(T prefab, int defaultCapacity = 10, int maxSize = 10000, Func<T> createFunc = null, Action<T> actionOnGet = null, Action<T> actionOnRelease = null, Action<T> actionOnDestroy = null)
         {
-            m_UniPool = new UniPool(prefab, defaultCapacity, maxSize, 
+            m_UniPool = new UniPool(prefab.gameObject, defaultCapacity, maxSize, 
                 () => createFunc().gameObject,
                 obj => actionOnGet(obj.GetComponent<T>()),
                 obj => actionOnRelease(obj.GetComponent<T>()),
@@ -273,9 +273,9 @@ namespace XuanTools.UniPool
             m_UniPool.RemoveDestoriedObject();
         }
 
-        public bool Contain(GameObject obj) 
+        public bool Contain(T obj) 
         {
-            return m_UniPool.Contain(obj);
+            return m_UniPool.Contain(obj.gameObject);
         }
 
         public void ClearPooled()
