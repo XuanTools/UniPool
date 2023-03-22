@@ -2,13 +2,13 @@
 
 [![Readme_EN](https://img.shields.io/badge/UniPool-Document-red)](https://github.com/XuanTools/UniPool/blob/main/README.md) [![license](https://img.shields.io/badge/license-MIT-green)](https://github.com/XuanTools/UniPool/blob/main/LICENSE)
 
-一个为GameObject打造的，简单易用、性能优秀的对象池管理工具
+一个为Unity的GameObject打造的，简单易用、性能优秀的对象池管理工具
 
 > 在游戏中会出现大量重复的物体需要频繁的创建和销毁；比如子弹，敌人，成就列表的格子等；频繁的创建删除物体会造成很大的开销；
 
 > UniPool能将需要频繁创建销毁的游戏对象缓存起来，将创建销毁行为替换成显示和隐藏，大大提高游戏运行效率。
 
-* UniTask对象池系统，缓存游戏对象，提升运行效率
+* UniPool对象池系统，缓存游戏对象，提升运行效率
 * 单例类UniPoolManager，统一管理场景内物体的对象池
 * 包含大量方便易用的扩展方法，能够便捷地对物体进行对象池操作
 * 延迟回收机制，优化同一帧内回收和获取大量物体时的性能
@@ -127,6 +127,23 @@ bool flag = pool.Contain(obj);
 pool.RemoveDestoriedObject();
 ```
 
+UniPool包含以下属性（均为只读），可以通过这些属性获得UniPool的信息和状态
+
+```
+// UniPool保存的预制体
+var prefab = pool.Prefab;
+
+// 属于UniPool的所有物体总数量
+int count1 = pool.CountAll;
+// UniPool已取出的物体的数量
+int count2 = pool.CountActive;
+// UniPool未取出的物体的数量（包括已回收和已缓存的物体）
+int count3 = pool.CountInactive;
+
+// 对象池能保存的最大物体数量
+int size = pool.Maxsize;
+```
+
 UniPool使用完成后，可以使用以下方法销毁对象池
 
 ```
@@ -140,7 +157,9 @@ pool.ClearAll();
 pool.Dispose();
 ```
 
-UniPool还包含了一个泛型版本UniPool\<T> where T : Component，可以对组件所属的物体进行上述相同的操作
+UniPool还包含了一个泛型版本UniPool\<T> where T : Component，可以使用该泛型版本方便地对组件进行管理
+
+泛型版本的方法参数值和返回值都为T类型，但其实是对组件所属的物体进行对象池操作的（无需GetComponent\<T>或T.gameobject），更为优雅
 
 ## UniPoolManager
 
