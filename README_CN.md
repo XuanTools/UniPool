@@ -17,7 +17,7 @@
 ## 目录
 
 - [快速入门](#快速入门)
-- [UniPool基础](#unitask基础)
+- [UniPool基础](#unipool基础)
 - [UniPoolManager](#unipoolmanager)
 - [进阶](#进阶)
 - [安装](#安装)
@@ -94,7 +94,7 @@ pool.Cache(obj)
 pool.CacheReleaseAll()
 ```
 
-UniPool还内置一个HashSet\<GameObject>追踪生成的物体，您可以快速的对所有活动状态（已取出的物体）执行操作
+UniPool还另外内置一个HashSet\<GameObject>追踪生成的物体，您可以快速的对所有已取出的物体执行回收操作
 
 调用下列方法将释放或缓存所有取出的物体，但是您的代码中可能仍存在这些物体的引用，这可能导致一些问题，请谨慎使用这些方法
 
@@ -106,10 +106,19 @@ pool.SpawnedReleaseAll()
 pool.SpawnedCacheAll()
 ```
 
+UniPool只能管理由UniPool本身生成的物体，试图回收不属于该UniPool物体是不允许的，这将导致报错
+
+使用以下方法可以判断一个物体是否属于某个UniPool（包括回收、缓存和活动状态的物体）
+
+```
+// 判断物体是否属于此对象池
+bool flag = pool.Contain(obj)
+```
+
 
 ## UniPoolManager
 
-UniTaskManager是一个管理场景中对象池的单例，其内部使用UniTask来缓存对象
+UniPoolManager是一个管理场景中对象池的单例，其内部使用UniTask来缓存对象
 
 （未完成）
 
