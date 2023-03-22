@@ -223,15 +223,19 @@ namespace XuanTools.UniPool
     {
         private readonly UniPool m_UniPool;
 
-        public GameObject Prefab { get => m_UniPool.Prefab; }
+        public T Prefab { get => m_UniPool.Prefab.GetComponent<T>(); }
         public int CountAll { get => m_UniPool.CountAll; }
         public int CountActive { get => m_UniPool.CountActive; }
         public int CountInactive { get => m_UniPool.CountInactive; }
         public int MaxSize { get => m_UniPool.MaxSize; }
 
-        public UniPool(GameObject prefab, int defaultCapacity = 10, int maxSize = 10000, Func<GameObject> createFunc = null, Action<GameObject> actionOnGet = null, Action<GameObject> actionOnRelease = null, Action<GameObject> actionOnDestroy = null)
+        public UniPool(GameObject prefab, int defaultCapacity = 10, int maxSize = 10000, Func<T> createFunc = null, Action<T> actionOnGet = null, Action<T> actionOnRelease = null, Action<T> actionOnDestroy = null)
         {
-            m_UniPool = new UniPool(prefab, defaultCapacity, maxSize, createFunc, actionOnGet, actionOnRelease, actionOnDestroy);
+            m_UniPool = new UniPool(prefab, defaultCapacity, maxSize, 
+                () => createFunc().gameObject,
+                obj => actionOnGet(obj.GetComponent<T>()),
+                obj => actionOnRelease(obj.GetComponent<T>()),
+                obj => actionOnDestroy(obj.GetComponent<T>()));
         }
 
         public T Get()
@@ -291,7 +295,7 @@ namespace XuanTools.UniPool
 
         public override string ToString()
         {
-            return m_UniPool.ToString();
+            return $"UniPool: {Prefab.name}({CountInactive}/{CountAll})";
         }
     }
 }
