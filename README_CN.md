@@ -59,7 +59,7 @@ UniPool是一个为GameObject设计的简单易用的对象池
 
 为什么要使用UniPool？因为Instanate()和Destory()会造成较大的性能开销，UniPool能缓存游戏对象，提升运行效率
 
-使用下面的构造方法为预制体创建对象池
+使用下面的构造方法为预制体创建UniPool对象池
 
 ```
 // 为prefab物体创建一个对象池，初始容量10，最大容量1000
@@ -70,28 +70,31 @@ var pool2 = new UniPool(prefab, 100, 1000, CreateFunc, ActionOnGet, ActionOnRele
 
 UniPool内部使用HashSet\<GameObject>缓存生成的物体，使用下面的方法获取和回收物体
 
+注意只能回收处于活动状态的物体（既已取出的物体），试图回收已回收的物体会引发一个错误
+
 ```
 // 从UniPool中取出一个物体并调用ActionOnGet委托，如果对象池中没有物体，则将调用CreateFunc委托创建一个新物体
 var obj = pool.Get();
 
-// 将物体放回UniPool中并调用ActionOnRelease委托，如果对象池已满，则再调用ActionOnDestroy委托
-pool.Release(obj)
+// 将物体放回UniPool中并调用ActionOnRelease委托，如果对象池已满，则再调用ActionOnDestroy委托销毁该物体
+pool.Release(obj);
+pool.Release(obj); // 寄了，抛出异常
 ```
 
-释放物体的委托可能造成一些开销（如SetActive），可以使用缓存方法，将物体暂时缓存在池中
+释放物体的委托（如常用的SetActive方法）可能造成一些开销，可以使用缓存方法，将物体暂时缓存在池中
+
+取出物体时将优先取出缓存状态的物体，这能避免释放时的开销（此时物体没有调用ActionOnRelease委托）
 
 ```
 // 缓存物体进入对象池，不调用ActionOnRelease委托
-pool.Cache(obj)
+pool.Cache(obj);
 ```
-
-取出物体时将优先取出缓存状态的物体，这能避免释放时的开销（物体没有调用ActionOnRelease委托）
 
 可以待到合适的时机再使用下面的方法将缓存的物体释放入池中
 
 ```
 // 释放所有已缓存的物体，并调用ActionOnRelease委托
-pool.CacheReleaseAll()
+pool.CacheReleaseAll();
 ```
 
 UniPool还另外内置一个HashSet\<GameObject>追踪生成的物体，您可以快速的对所有已取出的物体执行回收操作
@@ -100,10 +103,10 @@ UniPool还另外内置一个HashSet\<GameObject>追踪生成的物体，您可�
 
 ```
 // 释放所有已取出的物体
-pool.SpawnedReleaseAll()
+pool.SpawnedReleaseAll();
 
 // 缓存所有已取出的物体
-pool.SpawnedCacheAll()
+pool.SpawnedCacheAll();
 ```
 
 UniPool只能管理由UniPool本身生成的物体，试图回收不属于该UniPool物体是不允许的，这将导致报错
@@ -112,13 +115,36 @@ UniPool只能管理由UniPool本身生成的物体，试图回收不属于该Uni
 
 ```
 // 判断物体是否属于此对象池
-bool flag = pool.Contain(obj)
+bool flag = pool.Contain(obj);
 ```
 
+处在UniPool中的物体应由UniPool管理销毁，不应该对属于UniPool的物体调用Destory方法，UniPool会继续管理被销毁的物体，这将导致错误
+
+使用以下方法可以清除UniPool中已销毁的物体（正常使用UniPool无需调用此方法）
+
+```
+// 清除UniPool中已销毁的物体
+pool.RemoveDestoriedObject();
+```
+
+UniPool使用完成后，可以使用以下方法销毁对象池
+
+```
+// 清除所有非活动状态的物体（包括已回收和已缓存的物体）
+pool.ClearPooled();
+
+// 回收所有生成物体再释放UniPool，将导致所有物体被销毁
+pool.ClearAll();
+
+// 实现IDisposable接口，与ClearAll方法相同
+pool.Dispose();
+```
+
+UniPool还包含了一个泛型版本UniPool\<T> where T : Component，可以对组件所属的物体进行上述相同的操作
 
 ## UniPoolManager
 
-UniPoolManager是一个管理场景中对象池的单例，其内部使用UniTask来缓存对象
+UniPoolManager是一个管理场景中对象池的单例，其内部使用UniPool来缓存对象
 
 （未完成）
 
