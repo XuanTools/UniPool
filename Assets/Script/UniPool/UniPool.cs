@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace XuanTools.UniPool
@@ -129,32 +128,19 @@ namespace XuanTools.UniPool
 
         public void RemoveDestoriedObject() 
         {
-            tempList.AddRange(m_Pool);
-            for (int i = tempList.Count; i >= 0; i--)
-            {
-                if (!tempList[i]) 
-                {
-                    m_Pool.Remove(tempList[i]);
-                }
-            }
-            tempList.Clear();
+            RemoveDestoriedObjectInSet(m_Pool);
+            RemoveDestoriedObjectInSet(m_Cache);
+            RemoveDestoriedObjectInSet(m_Active);
+        }
 
-            tempList.AddRange(m_Cache);
+        private void RemoveDestoriedObjectInSet(ISet<GameObject> set) 
+        {
+            tempList.AddRange(set);
             for (int i = tempList.Count; i >= 0; i--)
             {
                 if (!tempList[i])
                 {
-                    m_Cache.Remove(tempList[i]);
-                }
-            }
-            tempList.Clear();
-
-            m_Active.AddRange(m_Active);
-            for (int i = tempList.Count; i >= 0; i--)
-            {
-                if (!tempList[i])
-                {
-                    m_Active.Remove(tempList[i]);
+                    set.Remove(tempList[i]);
                 }
             }
             tempList.Clear();
@@ -281,6 +267,11 @@ namespace XuanTools.UniPool
         public void RemoveDestoriedObject() 
         {
             m_UniPool.RemoveDestoriedObject();
+        }
+
+        public bool Contain(GameObject obj) 
+        {
+            return m_UniPool.Contain(obj);
         }
 
         public void ClearPooled()
