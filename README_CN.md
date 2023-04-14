@@ -159,40 +159,57 @@ pool.Dispose();
 
 UniPool还包含了一个泛型版本UniPool\<T> where T : Component，可以使用该泛型版本方便地对组件进行管理
 
-泛型版本的方法参数值和返回值都为T类型，但其实是对组件所属的物体进行对象池操作的（无需GetComponent\<T>或T.gameobject），更为优雅
+泛型版本的方法参数值和返回值都为T类型，但其实是对组件所属的物体进行对象池操作的（无需GetComponent\<T>或T.gameobject，更为优雅）
 
 ## UniPoolManager
 
 UniPoolManager是一个管理场景中对象池的单例，其内部使用UniPool来缓存对象
 
-（未完成）
+使用UniPoolManager可以方便地管理整个场景的对象
+
+* 场景内由同一个预制体生成的对象可以方便地由一个同一个UniPool进行管理
+
+* 生成的所有物体与对应预制体的关系将被保存，用于方便地进行UniPool操作
+
+* 回收的物体将被转移进UniPoolManager下的对应预制体目录中，保持场景目录整洁
+
+以下为UniPoolManager包含的静态方法，使用它们进行对象池操作
+
+```
+using XuanTools.UniPool;
+
+UniPoolManager.RegistPool(prefab, ..)
+UniPoolManager.Spawn(prefab, ..)
+UniPoolManager.Recycle(obj)`
+UniPoolManager.RecycleImmediate(obj)
+UniPoolManager.RecycleAll(prefab)
+UniPoolManager.RecycleAllImmediate(prefab)
+UniPoolManager.ContainPool(prefab)
+UniPoolManager.ContainObject(obj)`
+UniPoolManager.DisposePooled(prefab)
+UniPoolManager.DisposeAll(prefab)
+```
 
 ## 进阶
 
-以下代码展示了所有扩展方法的使用方法
+UniPool提供了许多易用的扩展方法，可以更优雅地调用UniPoolManager单例中的方法，无需导入命名空间即可使用
 
-GameObject类型和继承自Component的类型可以使用下列扩展方法
+下列表格展示了每个UniPoolManager中的静态方法所对应的UniPoolExtentions扩展方法
 
-在下列示例中，prefab为预制体（对象池使用期间不能销毁），obj为对象池生成的物体
+其中prefab表示需要用于生成物体的预制体，obj表示由UniPool生成的物体
 
-```
-// 注册对象池
-// defaultCapacity 初始化的物体数量
-// maxCount 该对象池所能容纳的最大容量
-// worldPositionStays设置回收设置父物体时是否保持世界坐标，UGUI物体应将此项设为false
-prefab.RegistPool(int defaultCapacity, int maxCount, bool worldPositionStays);
-
-// 生成物体，并设置父物体或初始位置
-// instantiateInWorldSpace, 取出并分配父对象时，传递true可直接在世界空间中定位新对象，传递false可相对于其新父项来设置对象的位置
-obj = prefab.Spawn();
-obj = prefab.Spawn(Transform parent);
-obj = prefab.Spawn(Transform parent, bool instantiateInWorldSpace);
-obj = prefab.Spawn(Vector3 position, Quaternion rotation);
-obj = prefab.Spawn(Vector3 position, Quaternion rotation, Transform parent);
-
-// 未完成
-
-```
+| UniPoolManager | UniPoolExtentions | 
+| --- | --- |
+| `UniPoolManager.RegistPool(prefab, ..)` | `prefab.RegistPool(..)` |
+| `UniPoolManager.Spawn(prefab, ..)` | `prefab.Spawn(..)` |
+| `UniPoolManager.Recycle(obj)` | `obj.Recycle()` | 
+| `UniPoolManager.RecycleImmediate(obj)` | `obj.RecycleImmediate()` |
+| `UniPoolManager.RecycleAll(prefab)` | `prefab.RecycleAll()` |
+| `UniPoolManager.RecycleAllImmediate(prefab)` | `prefab.RecycleAllImmediate()` |
+| `UniPoolManager.ContainPool(prefab)` | `prefab.ContainPool()` |
+| `UniPoolManager.ContainObject(obj)` | `obj.ContainObject()` |
+| `UniPoolManager.DisposePooled(prefab)` | `prefab.DisposePooled()` |
+| `UniPoolManager.DisposeAll(prefab)` | `prefab.DisposeAll()` |
 
 ## 安装
 
@@ -206,7 +223,7 @@ obj = prefab.Spawn(Vector3 position, Quaternion rotation, Transform parent);
 
 项目工程包含了一个性能测试场景，对比Instantiate与ObjectPool和UniPool之间的性能差异
 
-建议不要开启profiler，否则可能会导致UniPool测试帧率大幅降低
+建议不要开启Deeo Profile模式，否则可能会导致使用UniPool模式测试得到的帧率大幅降低
 
 ## License
 
