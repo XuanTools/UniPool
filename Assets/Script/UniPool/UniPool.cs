@@ -1,175 +1,212 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using JetBrains.Annotations;
 using UnityEngine;
 
 namespace XuanTools.UniPool
 {
     public sealed class UniPool : IDisposable
     {
-        private readonly Func<GameObject> m_CreateFunc;
-        private readonly Action<GameObject> m_ActionOnGet;
-        private readonly Action<GameObject> m_ActionOnRelease;
-        private readonly Action<GameObject> m_ActionOnDestroy;
-        private readonly List<GameObject> tempList = new();
+        private readonly Func<GameObject> _createFunc;
+        private readonly Action<GameObject> _actionOnGet;
+        private readonly Action<GameObject> _actionOnRelease;
+        private readonly Action<GameObject> _actionOnDestroy;
+        private readonly List<GameObject> _tempList = new();
 
-        internal readonly GameObject m_Prefab;
-		internal readonly HashSet<GameObject> m_Pool;
-		internal readonly HashSet<GameObject> m_Cache;
-		internal readonly HashSet<GameObject> m_Active;
-		internal readonly int m_MaxSize;
+        private readonly HashSet<GameObject> _pool;
+        private readonly HashSet<GameObject> _cache;
+        private readonly HashSet<GameObject> _active;
 
-        public GameObject Prefab { get => m_Prefab; }
-        public int CountAll { get => CountActive + CountInactive; }
-        public int CountActive { get => m_Active.Count; }
-        public int CountInactive { get => m_Pool.Count + m_Cache.Count; }
-        public int MaxSize { get => m_MaxSize; }
+        public GameObject Prefab { get; }
+        public int MaxSize { get; }
+        public int CountAll => CountActive + CountInactive;
+        public int CountActive => _active.Count;
+        public int CountInactive => _pool.Count + _cache.Count;
 
-        public UniPool(GameObject prefab, int defaultCapacity = 10, int maxSize = 10000, Func<GameObject> createFunc = null, Action<GameObject> actionOnGet = null, Action<GameObject> actionOnRelease = null, Action<GameObject> actionOnDestroy = null)
+        public UniPool(GameObject prefab, int defaultCapacity = 10, int maxSize = 10000,
+            [CanBeNull] Func<GameObject> createFunc = null, [CanBeNull] Action<GameObject> actionOnGet = null,
+            [CanBeNull] Action<GameObject> actionOnRelease = null,
+            [CanBeNull] Action<GameObject> actionOnDestroy = null)
         {
-            m_Prefab = prefab != null ? prefab : throw new ArgumentNullException("prefab");
-            m_Pool = new HashSet<GameObject>(maxSize);
-            m_Cache = new HashSet<GameObject>(maxSize);
-            m_Active = new HashSet<GameObject>(maxSize);
-			m_MaxSize = maxSize > 0 ? maxSize : throw new ArgumentException("Max Size must be greater than 0", "maxSize");
-            m_CreateFunc = createFunc ?? DefaultCreateFunc;
-            m_ActionOnGet = actionOnGet ?? DefaultActionOnGet;
-            m_ActionOnRelease = actionOnRelease ?? DefaultActionOnRelease;
-            m_ActionOnDestroy = actionOnDestroy ?? DefaultActionOnDestory;
-            InitDefaultCapicity(defaultCapacity);
+            Prefab = prefab != null ? prefab : throw new ArgumentNullException(nameof(prefab));
+            MaxSize = maxSize > 0
+                ? maxSize
+                : throw new ArgumentException("Max Size must be greater than 0", nameof(maxSize));
+            _pool = new HashSet<GameObject>(maxSize);
+            _cache = new HashSet<GameObject>(maxSize);
+            _active = new HashSet<GameObject>(maxSize);
+            _createFunc = createFunc ?? DefaultCreateFunc;
+            _actionOnGet = actionOnGet ?? DefaultActionOnGet;
+            _actionOnRelease = actionOnRelease ?? DefaultActionOnRelease;
+            _actionOnDestroy = actionOnDestroy ?? DefaultActionOnDestroy;
+            InitDefaultCapacity(defaultCapacity);
         }
 
         public GameObject Get()
         {
             GameObject obj;
-            if (m_Cache.Count > 0)
+            if (_cache.Count > 0)
             {
-                obj = m_Cache.First();
-                m_Cache.Remove(obj);
+                obj = _cache.First();
+                _cache.Remove(obj);
             }
-            else if (m_Pool.Count > 0)
+            else if (_pool.Count > 0)
             {
-                obj = m_Pool.First();
-                m_Pool.Remove(obj);
+                obj = _pool.First();
+                _pool.Remove(obj);
             }
             else
             {
-                obj = m_CreateFunc();
+                obj = _createFunc();
             }
-            m_Active.Add(obj);
-            m_ActionOnGet(obj);
+
+            _active.Add(obj);
+            _actionOnGet(obj);
             return obj;
+        }
+
+        public List<GameObject> GetList(int count)
+        {
+            if (count < 0) throw new ArgumentException("Max Size must not be less than 0", nameof(count));
+
+            var list = new List<GameObject>(count);
+
+            var remain = count;
+            while (remain > 0 && _cache.Any())
+            {
+                var obj = _cache.First();
+                list.Add(obj);
+                _cache.Remove(obj);
+                remain--;
+            }
+            while (remain > 0 && _pool.Any())
+            {
+                var obj = _pool.First();
+                list.Add(obj);
+                _pool.Remove(obj);
+                remain--;
+            }
+            for (var i = 0; i < remain; i++)
+            {
+                list.Add(_createFunc());
+            }
+
+            list.ForEach(obj =>
+            {
+                _active.Add(obj);
+                _actionOnGet(obj);
+            });
+            return list;
         }
 
         public void Release(GameObject obj)
         {
-            if (m_Pool.Contains(obj))
-            {
-                throw new InvalidOperationException($"Trying to release an object that has already been released in the pool: {obj}");
-            }
+            if (obj == Prefab)
+                throw new InvalidOperationException($"Trying to release prefab which is not allowed: {obj}");
+            if (_pool.Contains(obj))
+                throw new InvalidOperationException(
+                    $"Trying to release an object that has already been released in the pool: {obj}");
 
-            m_ActionOnRelease(obj);
-            m_Active.Remove(obj);
-            if (CountInactive < m_MaxSize)
+            _actionOnRelease(obj);
+            _active.Remove(obj);
+            if (CountInactive < MaxSize)
             {
-                m_Pool.Add(obj);
+                _pool.Add(obj);
             }
             else
             {
-                m_ActionOnDestroy(obj);
+                _actionOnDestroy(obj);
             }
         }
 
         public void Cache(GameObject obj)
         {
-            if (m_Active.Contains(obj))
-            {
-                m_Active.Remove(obj);
-                m_Cache.Add(obj);
-            }
-            else if (m_Cache.Contains(obj) || m_Pool.Contains(obj))
-            {
-                throw new InvalidOperationException($"Trying to cache an object that has already been in the pool: {obj}");
-            }
-            else 
-            {
-                throw new InvalidOperationException($"Trying to cache an object that does not belong to the pool: {obj}");
-            }
+            if (obj == Prefab)
+                throw new InvalidOperationException($"Trying to cache prefab which is not allowed: {obj}");
+            if (_cache.Contains(obj) || _pool.Contains(obj))
+                throw new InvalidOperationException(
+                    $"Trying to cache an object that has already been in the pool: {obj}");
+            if (!_active.Contains(obj))
+                throw new InvalidOperationException(
+                    $"Trying to cache an object that does not belong to the pool: {obj}");
+
+            _active.Remove(obj);
+            _cache.Add(obj);
         }
 
         public void CacheReleaseAll()
         {
-            foreach (GameObject obj in m_Cache)
+            foreach (var obj in _cache)
             {
                 Release(obj);
             }
-            m_Cache.Clear();
+
+            _cache.Clear();
         }
 
         public void SpawnedReleaseAll()
         {
-            tempList.AddRange(m_Active);
-            for (int i = tempList.Count; i >= 0; i--)
+            _tempList.AddRange(_active);
+            for (var i = _tempList.Count; i >= 0; i--)
             {
-                Release(tempList[i]);
+                Release(_tempList[i]);
             }
-            tempList.Clear();
+
+            _tempList.Clear();
         }
 
         public void SpawnedCacheAll()
         {
-            tempList.AddRange(m_Active);
-            for (int i = tempList.Count; i >= 0; i--)
+            _tempList.AddRange(_active);
+            for (var i = _tempList.Count; i >= 0; i--)
             {
-                Cache(tempList[i]);
+                Cache(_tempList[i]);
             }
-            tempList.Clear();
+
+            _tempList.Clear();
         }
 
-        public void RemoveDestoriedObject() 
+        public void RemoveDestroyedObject()
         {
-            RemoveDestoriedObjectInSet(m_Pool);
-            RemoveDestoriedObjectInSet(m_Cache);
-            RemoveDestoriedObjectInSet(m_Active);
+            RemoveDestroyedObjectInCollection(_pool);
+            RemoveDestroyedObjectInCollection(_cache);
+            RemoveDestroyedObjectInCollection(_active);
         }
 
-        private void RemoveDestoriedObjectInSet(ISet<GameObject> set) 
+        private void RemoveDestroyedObjectInCollection(ICollection<GameObject> collection)
         {
-            tempList.AddRange(set);
-            for (int i = tempList.Count; i >= 0; i--)
+            _tempList.AddRange(collection);
+            for (var i = _tempList.Count; i >= 0; i--)
             {
-                if (!tempList[i])
+                if (!_tempList[i])
                 {
-                    set.Remove(tempList[i]);
+                    collection.Remove(_tempList[i]);
                 }
             }
-            tempList.Clear();
+
+            _tempList.Clear();
         }
 
-        public bool Contain(GameObject obj) 
+        public bool Contain(GameObject obj)
         {
-            if (m_Pool.Contains(obj) || m_Cache.Contains(obj) || m_Active.Contains(obj)) 
-            {
-                return true;
-            }
-            else 
-            { 
-                return false; 
-            }
+            return _pool.Contains(obj) || _cache.Contains(obj) || _active.Contains(obj);
         }
 
         public void ClearPooled()
         {
-            foreach (GameObject obj in m_Pool)
+            foreach (var obj in _pool)
             {
-                m_ActionOnDestroy(obj);
+                _actionOnDestroy(obj);
             }
-            foreach (GameObject obj in m_Cache)
+
+            foreach (var obj in _cache)
             {
-                m_ActionOnDestroy(obj);
+                _actionOnDestroy(obj);
             }
-            m_Pool.Clear();
-            m_Cache.Clear();
+
+            _pool.Clear();
+            _cache.Clear();
         }
 
         public void ClearAll()
@@ -183,32 +220,32 @@ namespace XuanTools.UniPool
             ClearAll();
         }
 
-        private void InitDefaultCapicity(int defaultCapicity)
+        private void InitDefaultCapacity(int defaultCapacity)
         {
-            for (int i = 0; i < defaultCapicity; i++)
+            for (var i = 0; i < defaultCapacity; i++)
             {
-                var obj = m_CreateFunc();
-                m_ActionOnRelease(obj);
-                m_Pool.Add(obj);
+                var obj = _createFunc();
+                _actionOnRelease(obj);
+                _pool.Add(obj);
             }
         }
 
         private GameObject DefaultCreateFunc()
         {
-            return UnityEngine.Object.Instantiate(m_Prefab);
+            return UnityEngine.Object.Instantiate(Prefab);
         }
 
-        private void DefaultActionOnGet(GameObject obj)
+        private static void DefaultActionOnGet(GameObject obj)
         {
             obj.SetActive(true);
         }
 
-        private void DefaultActionOnRelease(GameObject obj)
+        private static void DefaultActionOnRelease(GameObject obj)
         {
             obj.SetActive(false);
         }
 
-        private void DefaultActionOnDestory(GameObject obj)
+        private static void DefaultActionOnDestroy(GameObject obj)
         {
             UnityEngine.Object.Destroy(obj);
         }
@@ -221,71 +258,72 @@ namespace XuanTools.UniPool
 
     public sealed class UniPool<T> : IDisposable where T : Component
     {
-        private readonly UniPool m_UniPool;
+        private readonly UniPool _uniPool;
 
-        public T Prefab { get => m_UniPool.Prefab.GetComponent<T>(); }
-        public int CountAll { get => m_UniPool.CountAll; }
-        public int CountActive { get => m_UniPool.CountActive; }
-        public int CountInactive { get => m_UniPool.CountInactive; }
-        public int MaxSize { get => m_UniPool.MaxSize; }
+        public T Prefab => _uniPool.Prefab.GetComponent<T>();
+        public int CountAll => _uniPool.CountAll;
+        public int CountActive => _uniPool.CountActive;
+        public int CountInactive => _uniPool.CountInactive;
+        public int MaxSize => _uniPool.MaxSize;
 
-        public UniPool(T prefab, int defaultCapacity = 10, int maxSize = 10000, Func<T> createFunc = null, Action<T> actionOnGet = null, Action<T> actionOnRelease = null, Action<T> actionOnDestroy = null)
+        public UniPool(T prefab, int defaultCapacity = 10, int maxSize = 10000, Func<T> createFunc = null,
+            Action<T> actionOnGet = null, Action<T> actionOnRelease = null, Action<T> actionOnDestroy = null)
         {
-            m_UniPool = new UniPool(prefab.gameObject, defaultCapacity, maxSize, 
-                () => createFunc().gameObject,
-                obj => actionOnGet(obj.GetComponent<T>()),
-                obj => actionOnRelease(obj.GetComponent<T>()),
-                obj => actionOnDestroy(obj.GetComponent<T>()));
+            _uniPool = new UniPool(prefab.gameObject, defaultCapacity, maxSize,
+                () => createFunc!().gameObject,
+                obj => actionOnGet!(obj.GetComponent<T>()),
+                obj => actionOnRelease!(obj.GetComponent<T>()),
+                obj => actionOnDestroy!(obj.GetComponent<T>()));
         }
 
         public T Get()
         {
-            return m_UniPool.Get().GetComponent<T>();
+            return _uniPool.Get().GetComponent<T>();
         }
 
         public void Release(T obj)
         {
-            m_UniPool.Release(obj.gameObject);
+            _uniPool.Release(obj.gameObject);
         }
 
         public void Cache(T obj)
         {
-            m_UniPool.Cache(obj.gameObject);
+            _uniPool.Cache(obj.gameObject);
         }
 
         public void CacheReleaseAll()
         {
-            m_UniPool.CacheReleaseAll();
+            _uniPool.CacheReleaseAll();
         }
 
-        public void SpawnedReleaseAll() 
+        public void SpawnedReleaseAll()
         {
-            m_UniPool.SpawnedReleaseAll();
+            _uniPool.SpawnedReleaseAll();
         }
 
         public void SpawnedCacheAll()
         {
-            m_UniPool.SpawnedCacheAll();
+            _uniPool.SpawnedCacheAll();
         }
 
-        public void RemoveDestoriedObject() 
+        public void RemoveDestroyedObject()
         {
-            m_UniPool.RemoveDestoriedObject();
+            _uniPool.RemoveDestroyedObject();
         }
 
-        public bool Contain(T obj) 
+        public bool Contain(T obj)
         {
-            return m_UniPool.Contain(obj.gameObject);
+            return _uniPool.Contain(obj.gameObject);
         }
 
         public void ClearPooled()
         {
-            m_UniPool.ClearPooled();
+            _uniPool.ClearPooled();
         }
 
-        public void ClearAll() 
+        public void ClearAll()
         {
-            m_UniPool.ClearAll();
+            _uniPool.ClearAll();
         }
 
         public void Dispose()

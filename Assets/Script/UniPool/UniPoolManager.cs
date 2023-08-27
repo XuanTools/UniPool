@@ -1,31 +1,31 @@
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace XuanTools.UniPool
 {
-    public sealed class UniPoolManager : MonoSingelton<UniPoolManager>
+    public sealed class UniPoolManager : MonoSingleton<UniPoolManager>
     {
         [System.Serializable]
         public class InitialPool
         {
-            public GameObject prefab;
-            public int defaultCapacity = 10;
-            public int maxSize = 1000;
-            public bool worldPositionStays = true;
+            public GameObject Prefab;
+            public int DefaultCapacity = 10;
+            public int MaxSize = 1000;
         }
 
-        public InitialPool[] initialPools;
+        public InitialPool[] InitialPools;
 
-        private readonly Dictionary<GameObject, UniPool> m_UniPools = new();
-        private readonly Dictionary<GameObject, GameObject> m_ObjectToPrefabDict = new();
-        private readonly Dictionary<GameObject, Transform> m_PrefabToParentDict = new();
+        private readonly Dictionary<GameObject, UniPool> _uniPools = new();
+        private readonly Dictionary<GameObject, GameObject> _objectToPrefabDict = new();
+        private readonly Dictionary<GameObject, Transform> _prefabToParentDict = new();
 
-        public bool Initialized { get; private set; } = false;
-        public int PoolCount { get => m_UniPools.Count; }
+        public bool Initialized { get; private set; }
+        public int PoolCount => _uniPools.Count;
 
         protected override void OnAwake()
         {
-            RegistInitialPools();
+            RegisterInitialPools();
         }
 
         private void LateUpdate()
@@ -33,51 +33,47 @@ namespace XuanTools.UniPool
             CacheRecycleAll();
         }
 
-        public void RegistInitialPools()
+        public void RegisterInitialPools()
         {
-            if (!Initialized)
+            if (Initialized) return;
+            Initialized = true;
+
+            if (InitialPools == null) return;
+            foreach (var pool in InitialPools)
             {
-                Initialized = true;
-                if (initialPools != null)
-                {
-                    foreach (var pool in initialPools)
+                RegisterPool(pool.Prefab, pool.DefaultCapacity, pool.MaxSize);
+            }
+        }
+
+        public static void RegisterPool<T>(T prefab, int defaultCapacity = 10, int maxSize = 10000) where T : Component
+        {
+            RegisterPool(prefab.gameObject, defaultCapacity, maxSize);
+        }
+
+        public static void RegisterPool(GameObject prefab, int defaultCapacity = 10, int maxSize = 10000)
+        {
+            if (Instance._uniPools.ContainsKey(prefab)) return;
+
+            var parent = new GameObject(prefab.name).transform;
+            parent.parent = Instance.transform;
+            parent.gameObject.SetActive(false);
+            Instance._prefabToParentDict.Add(prefab, parent);
+
+            Instance._uniPools.Add(prefab,
+                new UniPool(prefab, defaultCapacity, maxSize,
+                    () =>
                     {
-                        RegistPool(pool.prefab, pool.defaultCapacity, pool.maxSize, pool.worldPositionStays);
-                    }
-                }
-            }
-        }
-
-        public static void RegistPool<T>(T prefab, int defaultCapacity = 10, int maxSize = 10000, bool worldPositionStays = true) where T : Component
-        {
-            RegistPool(prefab.gameObject, defaultCapacity, maxSize, worldPositionStays);
-        }
-
-        public static void RegistPool(GameObject prefab, int defaultCapacity = 10, int maxSize = 10000, bool worldPositionStays = true)
-        {
-            if (!Instance.m_UniPools.ContainsKey(prefab))
-            {
-                Transform parent = new GameObject(prefab.name).transform;
-                parent.parent = Instance.transform;
-                parent.gameObject.SetActive(false);
-                Instance.m_PrefabToParentDict.Add(prefab, parent);
-
-                Instance.m_UniPools.Add(prefab,
-                    new UniPool(prefab, defaultCapacity, maxSize,
-                        () =>
-                        {
-                            var obj = Instantiate(prefab);
-                            Instance.m_ObjectToPrefabDict.Add(obj, prefab);
-                            return obj;
-                        },
-                        obj => { },
-                        obj => obj.transform.SetParent(parent, worldPositionStays),
-                        obj =>
-                        {
-                            Destroy(obj);
-                            Instance.m_ObjectToPrefabDict.Remove(obj);
-                        }));
-            }
+                        var obj = Instantiate(prefab);
+                        Instance._objectToPrefabDict.Add(obj, prefab);
+                        return obj;
+                    },
+                    _ => { },
+                    obj => obj.transform.SetParent(parent, !obj.TryGetComponent<RectTransform>(out _)),
+                    obj =>
+                    {
+                        Destroy(obj);
+                        Instance._objectToPrefabDict.Remove(obj);
+                    }));
         }
 
         public static T Spawn<T>(T prefab) where T : Component
@@ -111,14 +107,13 @@ namespace XuanTools.UniPool
         }
         public static GameObject Spawn(GameObject prefab, Transform parent, bool instantiateInWorldSpace)
         {
-            GameObject obj;
-            if (!Instance.m_UniPools.TryGetValue(prefab, out var pool))
+            if (!Instance._uniPools.TryGetValue(prefab, out var pool))
             {
-                // Creat pool if not exist.
-                RegistPool(prefab, 0);
-                pool = Instance.m_UniPools[prefab];
+                // Create pool if not exist.
+                RegisterPool(prefab, 0);
+                pool = Instance._uniPools[prefab];
             }
-            obj = pool.Get();
+            var obj = pool.Get();
             obj.transform.SetParent(parent, instantiateInWorldSpace);
             return obj;
         }
@@ -128,17 +123,44 @@ namespace XuanTools.UniPool
         }
         public static GameObject Spawn(GameObject prefab, Vector3 position, Quaternion rotation, Transform parent)
         {
-            GameObject obj;
-            if (!Instance.m_UniPools.TryGetValue(prefab, out var pool))
+            if (!Instance._uniPools.TryGetValue(prefab, out var pool))
             {
-                // Creat pool if not exist.
-                RegistPool(prefab, 0);
-                pool = Instance.m_UniPools[prefab];
+                // Create pool if not exist.
+                RegisterPool(prefab, 0);
+                pool = Instance._uniPools[prefab];
             }
-            obj = pool.Get();
+            var obj = pool.Get();
             obj.transform.SetPositionAndRotation(position, rotation);
             obj.transform.SetParent(parent);
             return obj;
+        }
+
+        public static List<GameObject> SpawnList(GameObject prefab, int count)
+        {
+            if (Instance._uniPools.TryGetValue(prefab, out var pool)) return pool.GetList(count);
+
+            // Create pool if not exist.
+            RegisterPool(prefab, 1);
+            pool = Instance._uniPools[prefab];
+            return pool.GetList(count);
+        }
+        public static List<GameObject> SpawnList(GameObject prefab, int count, Action<GameObject> actionAfterGet)
+        {
+            List<GameObject> list;
+            if (Instance._uniPools.TryGetValue(prefab, out var pool))
+            {
+                list = pool.GetList(count);
+            }
+            else
+            {
+                // Create pool if not exist.
+                RegisterPool(prefab, 1);
+                pool = Instance._uniPools[prefab];
+                list = pool.GetList(count);
+            }
+
+            list.ForEach(actionAfterGet);
+            return list;
         }
 
         public static void Recycle<T>(T obj) where T : Component
@@ -147,7 +169,7 @@ namespace XuanTools.UniPool
         }
         public static void Recycle(GameObject obj)
         {
-            if (Instance.m_ObjectToPrefabDict.TryGetValue(obj, out var prefab))
+            if (Instance._objectToPrefabDict.TryGetValue(obj, out var prefab))
             {
                 Recycle(obj, prefab);
             }
@@ -158,11 +180,11 @@ namespace XuanTools.UniPool
         }
         private static void Recycle(GameObject obj, GameObject prefab)
         {
-            if (Instance.m_UniPools.TryGetValue(prefab, out var pool))
+            if (Instance._uniPools.TryGetValue(prefab, out var pool))
             {
                 // Check if contain to avoid cache same object again before cache recycle.
-                if (!pool.m_Cache.Contains(obj))
-                    pool.Cache(obj);
+                // if (!pool._cache.Contains(obj))
+                pool.Cache(obj);
             }
             else
             {
@@ -176,7 +198,7 @@ namespace XuanTools.UniPool
         }
         public static void RecycleImmediate(GameObject obj)
         {
-            if (Instance.m_ObjectToPrefabDict.TryGetValue(obj, out var prefab))
+            if (Instance._objectToPrefabDict.TryGetValue(obj, out var prefab))
             {
                 RecycleImmediate(obj, prefab);
             }
@@ -187,7 +209,7 @@ namespace XuanTools.UniPool
         }
         private static void RecycleImmediate(GameObject obj, GameObject prefab)
         {
-            if (Instance.m_UniPools.TryGetValue(prefab, out var pool))
+            if (Instance._uniPools.TryGetValue(prefab, out var pool))
             {
                 pool.Release(obj);
             }
@@ -203,7 +225,7 @@ namespace XuanTools.UniPool
         }
         public static void RecycleAll(GameObject prefab)
         {
-            if (Instance.m_UniPools.TryGetValue(prefab, out var pool))
+            if (Instance._uniPools.TryGetValue(prefab, out var pool))
             {
                 pool.SpawnedCacheAll();
             }
@@ -215,7 +237,7 @@ namespace XuanTools.UniPool
         }
         public static void RecycleAllImmediate(GameObject prefab)
         {
-            if (Instance.m_UniPools.TryGetValue(prefab, out var pool))
+            if (Instance._uniPools.TryGetValue(prefab, out var pool))
             {
                 pool.SpawnedReleaseAll();
             }
@@ -227,7 +249,7 @@ namespace XuanTools.UniPool
         }
         public static void CacheRecycle(GameObject prefab)
         {
-            if (Instance.m_UniPools.TryGetValue(prefab, out var pool))
+            if (Instance._uniPools.TryGetValue(prefab, out var pool))
             {
                 pool.CacheReleaseAll();
             }
@@ -235,7 +257,7 @@ namespace XuanTools.UniPool
 
         public static void CacheRecycleAll()
         {
-            foreach (var pool in Instance.m_UniPools.Values)
+            foreach (var pool in Instance._uniPools.Values)
             {
                 pool.CacheReleaseAll();
             }
@@ -247,32 +269,38 @@ namespace XuanTools.UniPool
         }
         public static bool ContainPool(GameObject prefab)
         {
-            return Instance.m_UniPools.ContainsKey(prefab);
+            return Instance._uniPools.ContainsKey(prefab);
         }
 
         public static T GetPrefab<T>(T obj) where T : Component
         {
-            return Instance.m_ObjectToPrefabDict.GetValueOrDefault(obj.gameObject, null).GetComponent<T>();
+            return Instance._objectToPrefabDict.GetValueOrDefault(obj.gameObject, null).GetComponent<T>();
         }
         public static GameObject GetPrefab(GameObject obj)
         {
-            return Instance.m_ObjectToPrefabDict.GetValueOrDefault(obj, null);
+            return Instance._objectToPrefabDict.GetValueOrDefault(obj, null);
         }
 
         public static bool TryGetPrefab<T>(T obj, out T prefab) where T : Component
         {
-            bool flag = Instance.m_ObjectToPrefabDict.TryGetValue(obj.gameObject, out GameObject get);
-            prefab = get.GetComponent<T>();
-            return flag;
+            if (Instance._objectToPrefabDict.TryGetValue(obj.gameObject, out var get))
+            {
+                prefab = get.GetComponent<T>();
+                return true;
+            }
+
+            prefab = null;
+            return false;
         }
+
         public static bool TryGetPrefab(GameObject obj, out GameObject prefab)
         {
-            return Instance.m_ObjectToPrefabDict.TryGetValue(obj, out prefab);
+            return Instance._objectToPrefabDict.TryGetValue(obj, out prefab);
         }
 
         public static List<GameObject> GetAllPooledPrefabs()
         {
-            return new(Instance.m_PrefabToParentDict.Keys);
+            return new List<GameObject>(Instance._prefabToParentDict.Keys);
         }
 
         public static bool ContainObject<T>(T obj) where T : Component
@@ -281,7 +309,7 @@ namespace XuanTools.UniPool
         }
         public static bool ContainObject(GameObject obj)
         {
-            return Instance.m_ObjectToPrefabDict.ContainsKey(obj);
+            return Instance._objectToPrefabDict.ContainsKey(obj);
         }
 
 
@@ -291,10 +319,7 @@ namespace XuanTools.UniPool
         }
         public static void DisposePooled(GameObject prefab)
         {
-            Instance.m_UniPools[prefab].ClearPooled();
-            Instance.m_UniPools.Remove(prefab);
-            Destroy(Instance.m_PrefabToParentDict[prefab].gameObject);
-            Instance.m_PrefabToParentDict.Remove(prefab);
+            Instance._uniPools[prefab].ClearPooled();
         }
 
         public static void DisposeAll<T>(T prefab) where T : Component
@@ -303,45 +328,45 @@ namespace XuanTools.UniPool
         }
         public static void DisposeAll(GameObject prefab)
         {
-            Instance.m_UniPools[prefab].ClearAll();
-            Instance.m_UniPools.Remove(prefab);
-            Destroy(Instance.m_PrefabToParentDict[prefab].gameObject);
-            Instance.m_PrefabToParentDict.Remove(prefab);
+            Instance._uniPools[prefab].ClearAll();
+            Instance._uniPools.Remove(prefab);
+            Destroy(Instance._prefabToParentDict[prefab].gameObject);
+            Instance._prefabToParentDict.Remove(prefab);
         }
     }
 
-    public abstract class MonoSingelton<T> : MonoBehaviour where T : MonoBehaviour, new()
+    public abstract class MonoSingleton<T> : MonoBehaviour where T : MonoBehaviour, new()
     {
-        private static T m_Instance;
+        private static T _instance;
 
         public static T Instance
         {
             get
             {
-                if (m_Instance != null)
-                    return m_Instance;
+                if (_instance != null)
+                    return _instance;
 
-                m_Instance = FindObjectOfType<T>();
-                if (m_Instance != null)
-                    return m_Instance;
+                _instance = FindObjectOfType<T>();
+                if (_instance != null)
+                    return _instance;
 
                 var obj = new GameObject(nameof(T));
                 obj.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
                 obj.transform.localScale = Vector3.one;
-                m_Instance = obj.AddComponent<T>();
-                return m_Instance;
+                _instance = obj.AddComponent<T>();
+                return _instance;
             }
         }
 
         private void Awake()
         {
-            if (m_Instance != null)
+            if (_instance != null)
             {
                 Destroy(gameObject);
             }
             else
             {
-                m_Instance = this as T;
+                _instance = this as T;
                 OnAwake();
             }
         }

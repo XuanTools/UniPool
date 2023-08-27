@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Pool;
 
@@ -14,6 +14,7 @@ public class ObjectController : MonoBehaviour
     public bool ByInstance = false;
     public bool ByObjectPool = false;
     public bool ByUniPool = false;
+    public bool ByUniPoolList = false;
 
     private List<GameObject> _activeByInstantiate;
     private List<GameObject> _activeByObjectPool;
@@ -91,6 +92,14 @@ public class ObjectController : MonoBehaviour
             {
                 _activeByUniPool.Add(Prefab.Spawn(Random.insideUnitCircle * 12f, Random.rotation, UniPoolParent));
             }
+        }
+        else if (ByUniPoolList)
+        {
+            _activeByUniPool.AddRange(Prefab.SpawnList(Count, obj =>
+            {
+                obj.transform.SetPositionAndRotation(Random.insideUnitCircle * 12f, Random.rotation);
+                obj.transform.SetParent(UniPoolParent);
+            }));
         }
     }
 }

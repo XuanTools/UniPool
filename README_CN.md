@@ -13,6 +13,7 @@
 * 包含大量方便易用的扩展方法，能够便捷地对物体进行对象池操作
 * 延迟回收机制，优化同一帧内回收和获取大量物体时的性能
 * 允许自定义创建UniPool对象池，自定义委托，管理游戏物体的生成和回收
+* 支持UGUI物体，能够正确识别Transform类型并使用正确的转换操作
 
 ## 目录
 
@@ -38,17 +39,17 @@ void Start()
 {
     // 预先创建对象池，可以提前加载物体和设置对象池最大数量，避免使用时大量加载造成的性能问题
     // 您可以在场景中的UniPoolManger单例上挂载初始对象池，也可以使用调用方法为物体创建对象池
-    prefab.RegistPool(100, 1000); // 为预制体创建对象池，指定初始大小和最大容量
+    prefab.RegisterPool(100, 1000); // 为预制体创建对象池，指定初始大小和最大容量
 }
 
-void UniPoolDemo()
+void TestUniPool()
 {
     // 生成物体，取代Instanate()
     // 如果生成物体时不存在对象池，则会自动创建一个新的对象池
     GameObject obj1 = prefab.Spawn();
     SpriteRenderer obj2 = spri.Spawn(); // 组件与预制体拥有相同的扩展方法
 
-    // 回收物体，取代Destory()
+    // 回收物体，取代Destroy()
     obj.Recycle();
 }
 ```
@@ -57,7 +58,7 @@ void UniPoolDemo()
 
 UniPool是一个为GameObject设计的简单易用的对象池
 
-为什么要使用UniPool？因为Instanate()和Destory()会造成较大的性能开销，UniPool能缓存游戏对象，提升运行效率
+为什么要使用UniPool？因为Instanate()和Destroy()会造成较大的性能开销，UniPool能缓存游戏对象，提升运行效率
 
 使用下面的构造方法为预制体创建UniPool对象池
 
@@ -75,6 +76,8 @@ UniPool内部使用HashSet\<GameObject>缓存生成的物体，使用下面的�
 ```
 // 从UniPool中取出一个物体并调用ActionOnGet委托，如果对象池中没有物体，则将调用CreateFunc委托创建一个新物体
 var obj = pool.Get();
+// 从UniPool中取出指定数量的物体并返回取出物体的列表，与调用Get方法时执行的操作相同
+var list = pool.GetList(10);
 
 // 将物体放回UniPool中并调用ActionOnRelease委托，如果对象池已满，则再调用ActionOnDestroy委托销毁该物体
 pool.Release(obj);
@@ -90,7 +93,7 @@ pool.Release(obj); // 寄了，抛出异常
 pool.Cache(obj);
 ```
 
-可以待到合适的时机再使用下面的方法将缓存的物体释放入池中
+可以待到合适的时机再使用下面的方法将缓存的物体释放入池中（此时才会调用ActionOnRelease委托）
 
 ```
 // 释放所有已缓存的物体，并调用ActionOnRelease委托
@@ -118,13 +121,15 @@ UniPool只能管理由UniPool本身生成的物体，试图回收不属于该Uni
 bool flag = pool.Contain(obj);
 ```
 
-处在UniPool中的物体应由UniPool管理销毁，不应该对属于UniPool的物体调用Destory方法，UniPool会继续管理被销毁的物体，这将导致错误
+处在UniPool中的物体应完全由UniPool管理回收与销毁，不应该对属于UniPool的物体调用Destroy方法
+
+如果你销毁了属于UniPool的物体，UniPool会继续管理被销毁的物体，这将导致错误
 
 使用以下方法可以清除UniPool中已销毁的物体（正常使用UniPool无需调用此方法）
 
 ```
 // 清除UniPool中已销毁的物体
-pool.RemoveDestoriedObject();
+pool.RemoveDestroyedObject();
 ```
 
 UniPool包含以下属性（均为只读），可以通过这些属性获得UniPool的信息和状态
@@ -157,9 +162,9 @@ pool.ClearAll();
 pool.Dispose();
 ```
 
-UniPool还包含了一个泛型版本UniPool\<T> where T : Component，可以使用该泛型版本方便地对组件进行管理
+UniPool还包含了一个泛型版本UniPool\<T> where T : Component，可以使用该泛型版本方便地对组件类型进行管理
 
-泛型版本的方法参数值和返回值都为T类型，但其实是对组件所属的物体进行对象池操作的（无需GetComponent\<T>或T.gameobject，更为优雅）
+泛型版本的方法参数值和返回值都为T类型，但其实是对组件所属的物体进行对象池操作的（无需频繁GetComponent\<T>或T.gameobject，更为优雅）
 
 ## UniPoolManager
 
@@ -173,35 +178,63 @@ UniPoolManager是一个管理场景中对象池的单例，其内部使用UniPoo
 
 * 回收的物体将被转移进UniPoolManager下的对应预制体目录中，保持场景目录整洁
 
+* 延迟回收机制，回收物体时调用UniPool的Cache方法，在LateUpdate中统一调用CacheReleaseAll
+
 以下为UniPoolManager包含的静态方法，使用它们进行对象池操作
 
 ```
 using XuanTools.UniPool;
 
-UniPoolManager.RegistPool(prefab, ..)
-UniPoolManager.Spawn(prefab, ..)
-UniPoolManager.Recycle(obj)`
+// 注册对象池，可以指定初始容量与最大容量
+UniPoolManager.RegisterPool(prefab, ..);
+
+// 从该物体的对象池中取出一个物体
+UniPoolManager.Spawn(prefab, ..);
+// 从该物体的对象池中取出指定数量的物体
+UniPoolManager.SpawnList(prefab, count, ..);
+
+// 回收对象池生成的物体，暂时缓存在对象池中
+UniPoolManager.Recycle(obj);
+// 直接回收对象池生成的物体到对应对象池中，不缓存该物体
 UniPoolManager.RecycleImmediate(obj)
+
+// 立即回收所有此预制体生成的物体，并缓存在对象池中
 UniPoolManager.RecycleAll(prefab)
+// 直接回收所有此预制体生成的物体，不缓存这些物体
 UniPoolManager.RecycleAllImmediate(prefab)
+
+// 获得该生成的物体对应的预制体
+UniPoolManager.TryGetPrefab(obj, out prefab)
+// 获得所有已注册对象池的预制体的列表
+UniPoolManager.GetAllPooledPrefabs()
+
+// 判断是否存在该预制体的对象池
 UniPoolManager.ContainPool(prefab)
-UniPoolManager.ContainObject(obj)`
+// 判断该物体是否由UniPoolManager生成
+UniPoolManager.ContainObject(obj);
+
+// 销毁该预制体对应对象池中已回收或已缓存的物体
 UniPoolManager.DisposePooled(prefab)
+// 销毁该预制体对应对象池生成的所有物体并销毁该对象池
 UniPoolManager.DisposeAll(prefab)
+
+// 将所有对象池缓存的物体释放入池中
+UniPoolManager.CacheRecycleAll();
 ```
 
 ## 进阶
 
 UniPool提供了许多易用的扩展方法，可以更优雅地调用UniPoolManager单例中的方法，无需导入命名空间即可使用
 
-下列表格展示了每个UniPoolManager中的静态方法所对应的UniPoolExtentions扩展方法
+下列表格展示了每个UniPoolManager中的静态方法所对应的UniPoolExtension扩展方法
 
 其中prefab表示需要用于生成物体的预制体，obj表示由UniPool生成的物体
 
-| UniPoolManager | UniPoolExtentions | 
+| UniPoolManager | UniPoolExtension | 
 | --- | --- |
-| `UniPoolManager.RegistPool(prefab, ..)` | `prefab.RegistPool(..)` |
+| `UniPoolManager.RegisterPool(prefab, ..)` | `prefab.RegisterPool(..)` |
 | `UniPoolManager.Spawn(prefab, ..)` | `prefab.Spawn(..)` |
+| `UniPoolManager.SpawnList(prefab, count, ..)` | `prefab.Spawn(count, ..)` |
 | `UniPoolManager.Recycle(obj)` | `obj.Recycle()` | 
 | `UniPoolManager.RecycleImmediate(obj)` | `obj.RecycleImmediate()` |
 | `UniPoolManager.RecycleAll(prefab)` | `prefab.RecycleAll()` |
@@ -221,7 +254,7 @@ UniPool提供了许多易用的扩展方法，可以更优雅地调用UniPoolMan
 
 ## 工程
 
-项目工程包含了一个性能测试场景，对比Instantiate与ObjectPool和UniPool之间的性能差异
+项目工程包含了一个性能测试场景，用于对比Instantiate与ObjectPool和UniPool之间的性能差异
 
 建议不要开启Deeo Profile模式，否则可能会导致使用UniPool模式测试得到的帧率大幅降低
 
