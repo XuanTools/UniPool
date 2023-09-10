@@ -1,0 +1,7 @@
+{
+	"name": "com.xuantools.unipool",
+	"displayName": "UniPool",
+	"version": "0.1.0",
+	"unity": "2021.3",
+	"description": "A tool of object pool with good performance and is easy to use for unity."
+}

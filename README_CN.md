@@ -274,11 +274,15 @@ UniPool提供了许多易用的扩展方法，可以更优雅地调用UniPoolMan
 
 ## 安装
 
-下载资源，然后将对应文件夹导入您的Unity项目路径中即可。
+### 通过 git URL 安装
 
-如果遇到兼容问题，请选择兼容性更高的版本导入。
+需要支持 git 包路径查询参数的 unity 版本（Unity >= 2019.3.4f1，Unity >= 2020.1a21）
 
-如果仍遇到问题，您也可以选择手动将错误修复（这将不会很难）
+您可以添加`https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool`到包管理器。
+
+或添加`"com.cysharp.unitask": "https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool"`到`Packages/manifest.json`
+
+如果要设置目标版本，UniTask 使用*.*.*发布标签，因此您可以指定一个版本，如#0.1.0. 例如`https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool#0.1.0.`
 
 ## 工程
 
@@ -310,4 +314,4 @@ UniPool的性能比一般对象池的性能好得多。
 
 ## License
 
-[MIT](LICENSE) © Richard Littauer
+此仓库基于[MIT](LICENSE)协议

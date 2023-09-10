@@ -1,0 +1,16 @@
+{
+    "name": "XuanTools.UniPool",
+    "rootNamespace": "",
+    "references": [
+        "GUID:bebc717882ed40e41a34118544d3cf11"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
