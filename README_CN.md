@@ -280,9 +280,11 @@ UniPool提供了许多易用的扩展方法，可以更优雅地调用UniPoolMan
 
 您可以添加`https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool`到包管理器。
 
-或添加`"com.cysharp.unitask": "https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool"`到`Packages/manifest.json`
+![](./Docs/UPM.png)
 
-如果要设置目标版本，UniTask 使用*.*.*发布标签，因此您可以指定一个版本，如#0.1.0. 例如`https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool#0.1.0.`
+或添加`"com.xuantools.unipool": "https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool"`到`Packages/manifest.json`
+
+如果要设置目标版本，UniPool 使用*.*.*发布标签，因此您可以指定一个版本，如#0.1.0. 例如`https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool#0.1.0`
 
 ## 工程
 

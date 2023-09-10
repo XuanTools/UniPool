@@ -16,8 +16,9 @@ We will complete it as soon as possible, please be patient.
 - [UniPool](#unipool)
 - [UniPoolManager](#unipoolmanager)
 - [Advanced Use](#advanced-use)
-- [Installer](#installer)
+- [Installation](#installation)
 - [Project](#project)
+- [Performance](#performance)
 - [License](#license)
 
 ## Getting started
@@ -28,7 +29,21 @@ We will complete it as soon as possible, please be patient.
 
 ## Advanced Use
 
-## Installer
+## Installation
+
+### Install via git URL
+
+Requires a version of unity that supports path query parameter for git packages (Unity >= 2019.3.4f1, Unity >= 2020.1a21).
+
+You can add `https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool` to Package Manager.
+
+![](./Docs/UPM.png)
+
+or add `"com.xuantools.unipool": "https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool"` to `Packages/manifest.json`
+
+If you want to set a target version, UniTask uses the `*.*.*` release tag so you can specify a version like `#0.1.0`. For example `https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool#0.1.0`
+
+## Performance
 
 ## Project
 
