@@ -6,7 +6,7 @@ namespace XuanTools.UniPool
 {
     public sealed class UniPoolManager : MonoSingleton<UniPoolManager>
     {
-        [System.Serializable]
+        [Serializable]
         public class InitialPool
         {
             public GameObject Prefab;
@@ -140,27 +140,41 @@ namespace XuanTools.UniPool
             if (Instance._uniPools.TryGetValue(prefab, out var pool)) return pool.GetList(count);
 
             // Create pool if not exist.
-            RegisterPool(prefab, 1);
+            RegisterPool(prefab, count);
             pool = Instance._uniPools[prefab];
             return pool.GetList(count);
         }
         public static List<GameObject> SpawnList(GameObject prefab, int count, Action<GameObject> actionAfterGet)
         {
-            List<GameObject> list;
-            if (Instance._uniPools.TryGetValue(prefab, out var pool))
-            {
-                list = pool.GetList(count);
-            }
-            else
+            if (Instance._uniPools.TryGetValue(prefab, out var pool)) return pool.GetList(count, actionAfterGet);
+
+            // Create pool if not exist.
+            RegisterPool(prefab, count);
+            pool = Instance._uniPools[prefab];
+            return pool.GetList(count, actionAfterGet);
+        }
+
+        public static void SpawnToList(GameObject prefab, List<GameObject> list, int count)
+        {
+            if (!Instance._uniPools.TryGetValue(prefab, out var pool))
             {
                 // Create pool if not exist.
-                RegisterPool(prefab, 1);
+                RegisterPool(prefab, count);
                 pool = Instance._uniPools[prefab];
-                list = pool.GetList(count);
             }
 
-            list.ForEach(actionAfterGet);
-            return list;
+            pool.GetToList(list, count);
+        }
+        public static void SpawnToList(GameObject prefab, List<GameObject> list, int count, Action<GameObject> actionAfterGet)
+        {
+            if (!Instance._uniPools.TryGetValue(prefab, out var pool))
+            {
+                // Create pool if not exist.
+                RegisterPool(prefab, count);
+                pool = Instance._uniPools[prefab];
+            }
+
+            pool.GetToList(list, count, actionAfterGet);
         }
 
         public static void Recycle<T>(T obj) where T : Component
@@ -169,6 +183,9 @@ namespace XuanTools.UniPool
         }
         public static void Recycle(GameObject obj)
         {
+            if (obj == null)
+                throw new ArgumentNullException(nameof(obj));
+
             if (Instance._objectToPrefabDict.TryGetValue(obj, out var prefab))
             {
                 Recycle(obj, prefab);

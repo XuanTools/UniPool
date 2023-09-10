@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using JetBrains.Annotations;
 using UnityEngine;
+using XuanTools.UniPool.Collections;
 
 namespace XuanTools.UniPool
 {
@@ -14,9 +14,9 @@ namespace XuanTools.UniPool
         private readonly Action<GameObject> _actionOnDestroy;
         private readonly List<GameObject> _tempList = new();
 
-        private readonly HashSet<GameObject> _pool;
-        private readonly HashSet<GameObject> _cache;
-        private readonly HashSet<GameObject> _active;
+        private readonly HashPool<GameObject> _pool;
+        private readonly HashPool<GameObject> _cache;
+        private readonly HashPool<GameObject> _active;
 
         public GameObject Prefab { get; }
         public int MaxSize { get; }
@@ -33,9 +33,9 @@ namespace XuanTools.UniPool
             MaxSize = maxSize > 0
                 ? maxSize
                 : throw new ArgumentException("Max Size must be greater than 0", nameof(maxSize));
-            _pool = new HashSet<GameObject>(maxSize);
-            _cache = new HashSet<GameObject>(maxSize);
-            _active = new HashSet<GameObject>(maxSize);
+            _pool = new HashPool<GameObject>(maxSize);
+            _cache = new HashPool<GameObject>(maxSize);
+            _active = new HashPool<GameObject>(maxSize);
             _createFunc = createFunc ?? DefaultCreateFunc;
             _actionOnGet = actionOnGet ?? DefaultActionOnGet;
             _actionOnRelease = actionOnRelease ?? DefaultActionOnRelease;
@@ -48,13 +48,11 @@ namespace XuanTools.UniPool
             GameObject obj;
             if (_cache.Count > 0)
             {
-                obj = _cache.First();
-                _cache.Remove(obj);
+                obj = _cache.Get();
             }
             else if (_pool.Count > 0)
             {
-                obj = _pool.First();
-                _pool.Remove(obj);
+                obj = _pool.Get();
             }
             else
             {
@@ -68,40 +66,51 @@ namespace XuanTools.UniPool
 
         public List<GameObject> GetList(int count)
         {
-            if (count < 0) throw new ArgumentException("Max Size must not be less than 0", nameof(count));
-
             var list = new List<GameObject>(count);
+            GetToList(list, count);
+            return list;
+        }
+        public List<GameObject> GetList(int count, Action<GameObject> actionAfterGet)
+        {
+            var list = new List<GameObject>(count);
+            GetToList(list, count, actionAfterGet);
+            return list;
+        }
 
-            var remain = count;
-            while (remain > 0 && _cache.Any())
+        public void GetToList(List<GameObject> list, int count)
+        {
+            GetToList(list, count, _ => { });
+        }
+        public void GetToList(List<GameObject> list, int count, Action<GameObject> actionAfterGet)
+        {
+            if (count < 0) throw new ArgumentException("Count must not be less than 0", nameof(count));
+
+            // Get game object from pool to list
+            // Count will auto reduce by GetToList
+            count = _cache.GetToList(list, count, Action);
+            count = _pool.GetToList(list, count, Action);
+
+            for (var i = 0; i < count; i++)
             {
-                var obj = _cache.First();
+                var obj = _createFunc();
                 list.Add(obj);
-                _cache.Remove(obj);
-                remain--;
-            }
-            while (remain > 0 && _pool.Any())
-            {
-                var obj = _pool.First();
-                list.Add(obj);
-                _pool.Remove(obj);
-                remain--;
-            }
-            for (var i = 0; i < remain; i++)
-            {
-                list.Add(_createFunc());
+                Action(obj);
             }
 
-            list.ForEach(obj =>
+            return;
+
+            void Action(GameObject obj)
             {
                 _active.Add(obj);
                 _actionOnGet(obj);
-            });
-            return list;
+                actionAfterGet(obj);
+            }
         }
 
         public void Release(GameObject obj)
         {
+            if (obj == null)
+                throw new ArgumentNullException(nameof(obj));
             if (obj == Prefab)
                 throw new InvalidOperationException($"Trying to release prefab which is not allowed: {obj}");
             if (_pool.Contains(obj))
@@ -122,6 +131,8 @@ namespace XuanTools.UniPool
 
         public void Cache(GameObject obj)
         {
+            if (obj == null)
+                throw new ArgumentNullException(nameof(obj));
             if (obj == Prefab)
                 throw new InvalidOperationException($"Trying to cache prefab which is not allowed: {obj}");
             if (_cache.Contains(obj) || _pool.Contains(obj))
@@ -174,14 +185,14 @@ namespace XuanTools.UniPool
             RemoveDestroyedObjectInCollection(_active);
         }
 
-        private void RemoveDestroyedObjectInCollection(ICollection<GameObject> collection)
+        private void RemoveDestroyedObjectInCollection(HashPool<GameObject> pool)
         {
-            _tempList.AddRange(collection);
+            _tempList.AddRange(pool);
             for (var i = _tempList.Count; i >= 0; i--)
             {
                 if (!_tempList[i])
                 {
-                    collection.Remove(_tempList[i]);
+                    pool.Remove(_tempList[i]);
                 }
             }
 
@@ -279,6 +290,27 @@ namespace XuanTools.UniPool
         public T Get()
         {
             return _uniPool.Get().GetComponent<T>();
+        }
+
+        public List<T> GetList(int count)
+        {
+            return _uniPool.GetList(count).ConvertAll(obj => obj.GetComponent<T>());
+        }
+
+        public List<T> GetList(int count, Action<T> actionAfterGet)
+        {
+            return _uniPool.GetList(count, obj => actionAfterGet(obj.GetComponent<T>()))
+                .ConvertAll(obj => obj.GetComponent<T>());
+        }
+
+        public void GetToList(List<T> list, int count)
+        {
+            list.AddRange(GetList(count));
+        }
+
+        public void GetToList(List<T> list, int count, Action<T> actionAfterGet)
+        {
+            list.AddRange(GetList(count, actionAfterGet));
         }
 
         public void Release(T obj)

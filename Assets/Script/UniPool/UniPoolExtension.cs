@@ -157,6 +157,30 @@ public static class UniPoolExtension
     }
 
     /// <summary>
+    /// Spawn a specified number of prefab to existing list.
+    /// </summary>
+    /// <param name="prefab">An registered object that you want to make spawn of.</param>
+    /// <param name="list">An existing list to spawn object</param>
+    /// <param name="count">Number you need to spawned.</param>
+    public static void SpawnToList(this GameObject prefab, List<GameObject> list, int count)
+    { 
+        UniPoolManager.SpawnToList(prefab, list, count);
+    }
+
+    /// <summary>
+    /// Spawn a specified number of prefab to existing list.
+    /// </summary>
+    /// <param name="prefab">An registered object that you want to make spawn of.</param>
+    /// <param name="list">An existing list to spawn object</param>
+    /// <param name="count">Number you need to spawned.</param>
+    /// <param name="actionAfterGet">Action after object spawned.</param>
+    /// <returns>Object spawned from pool.</returns>
+    public static void SpawnToList(this GameObject prefab, List<GameObject> list, int count, Action<GameObject> actionAfterGet)
+    {
+        UniPoolManager.SpawnToList(prefab, list, count, actionAfterGet);
+    }
+
+    /// <summary>
     /// Recycle the game object to UniPoolManager.
     /// </summary>
     public static void Recycle<T>(this T obj) where T : Component

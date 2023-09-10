@@ -95,11 +95,11 @@ public class ObjectController : MonoBehaviour
         }
         else if (ByUniPoolList)
         {
-            _activeByUniPool.AddRange(Prefab.SpawnList(Count, obj =>
+            Prefab.SpawnToList(_activeByUniPool, Count, obj =>
             {
                 obj.transform.SetPositionAndRotation(Random.insideUnitCircle * 12f, Random.rotation);
                 obj.transform.SetParent(UniPoolParent);
-            }));
+            });
         }
     }
 }

@@ -517,7 +517,7 @@ MonoBehaviour:
   InitialPools:
   - Prefab: {fileID: 6965986642301142664, guid: e0244dc38caca9e47929c3a5400e9ade, type: 3}
     DefaultCapacity: 1000
-    MaxSize: 10000
+    MaxSize: 2000
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
