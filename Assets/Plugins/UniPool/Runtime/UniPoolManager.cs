@@ -103,7 +103,7 @@ namespace XuanTools.UniPool
         }
         public static GameObject Spawn(GameObject prefab, Transform parent)
         {
-            return Spawn(prefab, parent, false);
+            return Spawn(prefab, parent, !prefab.TryGetComponent<RectTransform>(out _));
         }
         public static GameObject Spawn(GameObject prefab, Transform parent, bool instantiateInWorldSpace)
         {
@@ -131,7 +131,7 @@ namespace XuanTools.UniPool
             }
             var obj = pool.Get();
             obj.transform.SetPositionAndRotation(position, rotation);
-            obj.transform.SetParent(parent);
+            obj.transform.SetParent(parent, !prefab.TryGetComponent<RectTransform>(out _));
             return obj;
         }
 
@@ -367,7 +367,7 @@ namespace XuanTools.UniPool
                 if (_instance != null)
                     return _instance;
 
-                var obj = new GameObject(nameof(T));
+                var obj = new GameObject(typeof(T).Name);
                 obj.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
                 obj.transform.localScale = Vector3.one;
                 _instance = obj.AddComponent<T>();
