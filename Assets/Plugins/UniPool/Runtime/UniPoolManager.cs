@@ -68,7 +68,7 @@ namespace XuanTools.UniPool
                         return obj;
                     },
                     _ => { },
-                    obj => obj.transform.SetParent(parent, !obj.TryGetComponent<RectTransform>(out _)),
+                    obj => obj.transform.SetParent(parent, obj.transform is not RectTransform),
                     obj =>
                     {
                         Destroy(obj);
@@ -103,7 +103,7 @@ namespace XuanTools.UniPool
         }
         public static GameObject Spawn(GameObject prefab, Transform parent)
         {
-            return Spawn(prefab, parent, !prefab.TryGetComponent<RectTransform>(out _));
+            return Spawn(prefab, parent, prefab.transform is not RectTransform);
         }
         public static GameObject Spawn(GameObject prefab, Transform parent, bool instantiateInWorldSpace)
         {
@@ -131,7 +131,7 @@ namespace XuanTools.UniPool
             }
             var obj = pool.Get();
             obj.transform.SetPositionAndRotation(position, rotation);
-            obj.transform.SetParent(parent, !prefab.TryGetComponent<RectTransform>(out _));
+            obj.transform.SetParent(parent, prefab.transform is not RectTransform);
             return obj;
         }
 
