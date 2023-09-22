@@ -114,7 +114,11 @@ namespace XuanTools.UniPool
                 pool = Instance._uniPools[prefab];
             }
             var obj = pool.Get();
-            obj.transform.SetParent(parent, instantiateInWorldSpace);
+            obj.transform.SetParent(parent);
+            if (instantiateInWorldSpace)
+                obj.transform.SetPositionAndRotation(prefab.transform.position, prefab.transform.rotation);
+            else
+                obj.transform.SetLocalPositionAndRotation(prefab.transform.position, prefab.transform.rotation);
             return obj;
         }
         public static GameObject Spawn(GameObject prefab, Vector3 position, Quaternion rotation)
