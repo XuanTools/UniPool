@@ -103,7 +103,7 @@ namespace XuanTools.UniPool
         }
         public static GameObject Spawn(GameObject prefab, Transform parent)
         {
-            return Spawn(prefab, parent, prefab.transform is not RectTransform);
+            return Spawn(prefab, parent, false);
         }
         public static GameObject Spawn(GameObject prefab, Transform parent, bool instantiateInWorldSpace)
         {
