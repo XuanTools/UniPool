@@ -114,11 +114,18 @@ namespace XuanTools.UniPool
                 pool = Instance._uniPools[prefab];
             }
             var obj = pool.Get();
-            obj.transform.SetParent(parent);
+            obj.transform.SetParent(parent, prefab.transform is not RectTransform);
             if (instantiateInWorldSpace)
+            {
                 obj.transform.SetPositionAndRotation(prefab.transform.position, prefab.transform.rotation);
+                obj.transform.localScale = prefab.transform.localScale;
+            }
             else
+            {
                 obj.transform.SetLocalPositionAndRotation(prefab.transform.position, prefab.transform.rotation);
+                obj.transform.localScale = prefab.transform.localScale;
+            }
+
             return obj;
         }
         public static GameObject Spawn(GameObject prefab, Vector3 position, Quaternion rotation)
@@ -134,8 +141,9 @@ namespace XuanTools.UniPool
                 pool = Instance._uniPools[prefab];
             }
             var obj = pool.Get();
-            obj.transform.SetPositionAndRotation(position, rotation);
             obj.transform.SetParent(parent, prefab.transform is not RectTransform);
+            obj.transform.SetLocalPositionAndRotation(position, rotation);
+            obj.transform.localScale = prefab.transform.localScale;
             return obj;
         }
 
