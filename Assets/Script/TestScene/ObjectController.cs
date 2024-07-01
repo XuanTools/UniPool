@@ -8,7 +8,6 @@ using UnityEngine.Pool;
 using static UnityEngine.Debug;
 using static UnityEngine.Random;
 
-
 namespace XuanTools.UniPool.Benchmark
 {
     public enum BenchmarkType

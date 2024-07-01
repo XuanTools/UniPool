@@ -1,7 +1,13 @@
 {
 	"name": "com.xuantools.unipool",
 	"displayName": "UniPool",
-	"version": "0.1.0",
-	"unity": "2021.3",
-	"description": "A tool of object pool with good performance and is easy to use for unity."
+	"author": {
+		"name": "LuoxuanLove",
+		"url": "https://github.com/LuoxuanLove"
+	},
+	"version": "1.0.0",
+	"unity": "6000.0",
+	"description": "An efficient and easy to use object pool tool designed for Unity.",
+	"license": "MIT",
+	"dependencies": {}
 }

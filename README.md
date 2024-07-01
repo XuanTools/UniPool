@@ -41,7 +41,7 @@ You can add `https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPoo
 
 or add `"com.xuantools.unipool": "https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool"` to `Packages/manifest.json`
 
-If you want to set a target version, UniTask uses the `*.*.*` release tag so you can specify a version like `#0.1.0`. For example `https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool#0.1.0`
+If you want to set a target version, UniTask uses the `*.*.*` release tag so you can specify a version like `#1.0.0`. For example `https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool#1.0.0`
 
 ## Performance
 

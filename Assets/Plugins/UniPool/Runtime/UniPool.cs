@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using JetBrains.Annotations;
 using UnityEngine;
 using XuanTools.UniPool.Collections;
 
@@ -12,7 +11,11 @@ namespace XuanTools.UniPool
         private readonly Action<GameObject> _actionOnGet;
         private readonly Action<GameObject> _actionOnRelease;
         private readonly Action<GameObject> _actionOnDestroy;
+#if UNITY_2021_2_OR_NEWER
         private readonly List<GameObject> _tempList = new();
+#else
+        private readonly List<GameObject> _tempList = new List<GameObject>();
+#endif
 
         private readonly HashPool<GameObject> _pool;
         private readonly HashPool<GameObject> _cache;
@@ -25,14 +28,20 @@ namespace XuanTools.UniPool
         public int CountInactive => _pool.Count + _cache.Count;
 
         public UniPool(GameObject prefab, int defaultCapacity = 10, int maxSize = 10000,
-            [CanBeNull] Func<GameObject> createFunc = null, [CanBeNull] Action<GameObject> actionOnGet = null,
-            [CanBeNull] Action<GameObject> actionOnRelease = null,
-            [CanBeNull] Action<GameObject> actionOnDestroy = null)
+            Func<GameObject> createFunc = null, Action<GameObject> actionOnGet = null,
+            Action<GameObject> actionOnRelease = null, Action<GameObject> actionOnDestroy = null)
         {
+#if UNITY_2018_2_OR_NEWER
             Prefab = prefab != null ? prefab : throw new ArgumentNullException(nameof(prefab));
             MaxSize = maxSize > 0
                 ? maxSize
                 : throw new ArgumentException("Max Size must be greater than 0", nameof(maxSize));
+#else
+            if (prefab == null) throw new ArgumentNullException(nameof(prefab));
+            Prefab = prefab;
+            if (maxSize <= 0) throw new ArgumentException("Max Size must be greater than 0", nameof(maxSize));
+            MaxSize = maxSize;
+#endif
             _pool = new HashPool<GameObject>(maxSize);
             _cache = new HashPool<GameObject>(maxSize);
             _active = new HashPool<GameObject>(maxSize);
@@ -64,46 +73,33 @@ namespace XuanTools.UniPool
             return obj;
         }
 
-        public List<GameObject> GetList(int count)
-        {
-            var list = new List<GameObject>(count);
-            GetToList(list, count);
-            return list;
-        }
-        public List<GameObject> GetList(int count, Action<GameObject> actionAfterGet)
+        public List<GameObject> GetList(int count, Action<GameObject> actionAfterGet = null)
         {
             var list = new List<GameObject>(count);
             GetToList(list, count, actionAfterGet);
             return list;
         }
 
-        public void GetToList(List<GameObject> list, int count)
-        {
-            GetToList(list, count, _ => { });
-        }
-        public void GetToList(List<GameObject> list, int count, Action<GameObject> actionAfterGet)
+        public void GetToList(List<GameObject> list, int count, Action<GameObject> actionAfterGet = null)
         {
             if (count < 0) throw new ArgumentException("Count must not be less than 0", nameof(count));
 
+            Action<GameObject> getToListAction = obj =>
+            {
+                _active.Add(obj);
+                _actionOnGet(obj);
+                actionAfterGet?.Invoke(obj);
+            };
             // Get game object from pool to list
             // Count will auto reduce by GetToList
-            count = _cache.GetToList(list, count, Action);
-            count = _pool.GetToList(list, count, Action);
+            count = _cache.GetToList(list, count, getToListAction);
+            count = _pool.GetToList(list, count, getToListAction);
 
             for (var i = 0; i < count; i++)
             {
                 var obj = _createFunc();
                 list.Add(obj);
-                Action(obj);
-            }
-
-            return;
-
-            void Action(GameObject obj)
-            {
-                _active.Add(obj);
-                _actionOnGet(obj);
-                actionAfterGet(obj);
+                getToListAction(obj);
             }
         }
 
@@ -277,14 +273,15 @@ namespace XuanTools.UniPool
         public int CountInactive => _uniPool.CountInactive;
         public int MaxSize => _uniPool.MaxSize;
 
-        public UniPool(T prefab, int defaultCapacity = 10, int maxSize = 10000, Func<T> createFunc = null,
-            Action<T> actionOnGet = null, Action<T> actionOnRelease = null, Action<T> actionOnDestroy = null)
+        public UniPool(T prefab, int defaultCapacity = 10, int maxSize = 10000,
+            Func<T> createFunc = null, Action<T> actionOnGet = null,
+            Action<T> actionOnRelease = null, Action<T> actionOnDestroy = null)
         {
             _uniPool = new UniPool(prefab.gameObject, defaultCapacity, maxSize,
-                () => createFunc!().gameObject,
-                obj => actionOnGet!(obj.GetComponent<T>()),
-                obj => actionOnRelease!(obj.GetComponent<T>()),
-                obj => actionOnDestroy!(obj.GetComponent<T>()));
+                createFunc != null ? new Func<GameObject>(() => createFunc().gameObject) : null,
+                actionOnGet != null ? new Action<GameObject>(obj => actionOnGet(obj.GetComponent<T>())) : null,
+                actionOnRelease != null ? new Action<GameObject>(obj => actionOnRelease(obj.GetComponent<T>())) : null,
+                actionOnDestroy != null ? new Action<GameObject>(obj => actionOnDestroy(obj.GetComponent<T>())) : null);
         }
 
         public T Get()
@@ -292,23 +289,13 @@ namespace XuanTools.UniPool
             return _uniPool.Get().GetComponent<T>();
         }
 
-        public List<T> GetList(int count)
+        public List<T> GetList(int count, Action<T> actionAfterGet = null)
         {
-            return _uniPool.GetList(count).ConvertAll(obj => obj.GetComponent<T>());
-        }
-
-        public List<T> GetList(int count, Action<T> actionAfterGet)
-        {
-            return _uniPool.GetList(count, obj => actionAfterGet(obj.GetComponent<T>()))
+            return _uniPool.GetList(count, obj => actionAfterGet?.Invoke(obj.GetComponent<T>()))
                 .ConvertAll(obj => obj.GetComponent<T>());
         }
 
-        public void GetToList(List<T> list, int count)
-        {
-            list.AddRange(GetList(count));
-        }
-
-        public void GetToList(List<T> list, int count, Action<T> actionAfterGet)
+        public void GetToList(List<T> list, int count, Action<T> actionAfterGet = null)
         {
             list.AddRange(GetList(count, actionAfterGet));
         }

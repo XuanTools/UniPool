@@ -31,7 +31,7 @@ namespace XuanTools.UniPool.Collections
 
         private int[] _buckets; // An array to store reference to slots
         private Slot[] _slots; // An array that value actually be stored
-        private int _lastIndex; // Last index that has been use to store value
+        private int _lastIndex; // Last index that has been used to store value
         private int _freeList; // A list for free slot cause by remove
         private readonly IEqualityComparer<T> _comparer; // Comparator used to determine equality
 
@@ -44,19 +44,18 @@ namespace XuanTools.UniPool.Collections
 
         public HashPool(int capacity, IEqualityComparer<T> comparer) : this(comparer)
         {
-            switch (capacity)
-            {
-                case < 0:
-                    throw new ArgumentOutOfRangeException(nameof(capacity));
-                case >= 0:
-                    Initialize(capacity);
-                    break;
-            }
+            if (capacity < 0) throw new ArgumentOutOfRangeException(nameof(capacity));
+
+            Initialize(capacity);
         }
 
         public HashPool(IEqualityComparer<T> comparer)
         {
+#if UNITY_2020_2_OR_NEWER
             comparer ??= EqualityComparer<T>.Default;
+#else
+            if (comparer == null) comparer = EqualityComparer<T>.Default;
+#endif
 
             _comparer = comparer;
             _lastIndex = 0;
@@ -72,7 +71,7 @@ namespace XuanTools.UniPool.Collections
         internal bool AddIfNotPresent(T value)
         {
             var hashCode = InternalGetHashCode(value);
-            var bucket = hashCode % _buckets!.Length;
+            var bucket = hashCode % _buckets.Length;
 
             for (var i = _buckets[hashCode % _buckets.Length]; i >= 0; i = _slots[i].Next)
             {
@@ -113,7 +112,11 @@ namespace XuanTools.UniPool.Collections
             if (Count == 0) throw new InvalidOperationException("Count = 0 but try to release");
 
             var index = 0;
+#if UNITY_2018_2_OR_NEWER
             T value = default;
+#else
+            T value = default(T);
+#endif
             while (index < _lastIndex)
             {
                 if (_slots[index].HashCode >= 0)
@@ -130,27 +133,7 @@ namespace XuanTools.UniPool.Collections
             return value;
         }
 
-        public int GetToList(List<T> list, int count)
-        {
-            var index = 0;
-            // Iterate buckets
-            while (Count > 0 && count > 0 && index < _buckets.Length)
-            {
-                // Iterate slot list that buckets reference to
-                while (Count > 0 && count > 0 && _buckets[index] >= 0)
-                {
-                    list.Add(_slots[_buckets[index]].Value);
-                    RemoveAt(index);
-
-                    count--;
-                }
-                index++;
-            }
-
-            return count;
-        }
-
-        public int GetToList(List<T> list, int count, Action<T> actionAfterGet)
+        public int GetToList(List<T> list, int count, Action<T> actionAfterGet = null)
         {
             var index = 0;
             // Iterate buckets
@@ -160,7 +143,7 @@ namespace XuanTools.UniPool.Collections
                 while (Count > 0 && count > 0 && _buckets[index] >= 0)
                 {
                     var value = _slots[_buckets[index]].Value;
-                    actionAfterGet(value);
+                    actionAfterGet?.Invoke(value);
                     list.Add(value);
                     RemoveAt(index);
 
@@ -179,7 +162,11 @@ namespace XuanTools.UniPool.Collections
             _buckets[bucket] = _slots[i].Next;
 
             _slots[i].HashCode = -1;
+#if UNITY_2018_2_OR_NEWER
             _slots[i].Value = default;
+#else
+            _slots[i].Value = default(T);
+#endif
             _slots[i].Next = _freeList;
 
             Count--;
@@ -233,7 +220,11 @@ namespace XuanTools.UniPool.Collections
                     _slots[last].Next = _slots[i].Next;
                 }
                 _slots[i].HashCode = -1;
+#if UNITY_2018_2_OR_NEWER
                 _slots[i].Value = default;
+#else
+                _slots[i].Value = default(T);
+#endif
                 _slots[i].Next = _freeList;
 
                 Count--;
@@ -378,11 +369,11 @@ namespace XuanTools.UniPool.Collections
             {
                 this._pool = pool;
                 _index = 0;
+#if UNITY_2018_2_OR_NEWER
                 Current = default;
-            }
-
-            public readonly void Dispose()
-            {
+#else
+                Current = default(T);
+#endif
             }
 
             public bool MoveNext()
@@ -398,19 +389,41 @@ namespace XuanTools.UniPool.Collections
                     _index++;
                 }
                 _index = _pool._lastIndex + 1;
+#if UNITY_2018_2_OR_NEWER
                 Current = default;
+#else
+                Current = default(T);
+#endif
                 return false;
             }
 
             public T Current { get; private set; }
 
-            readonly object IEnumerator.Current => Current;
-
             void IEnumerator.Reset()
             {
                 _index = 0;
+#if UNITY_2018_2_OR_NEWER
                 Current = default;
+#else
+                Current = default(T);
+#endif
             }
+
+#if UNITY_2020_2_OR_NEWER
+            readonly object IEnumerator.Current => Current;
+
+            public readonly void Dispose()
+            {
+
+            }
+#else
+            object IEnumerator.Current => Current;
+
+            public void Dispose()
+            {
+
+            }
+#endif
         }
     }
 
@@ -445,7 +458,7 @@ namespace XuanTools.UniPool.Collections
                 if (prime >= min) return prime;
             }
 
-            //outside of our predefined table. 
+            //outside our predefined table. 
             //compute the hard way. 
             for (var i = (min | 1); i < int.MaxValue; i += 2)
             {
@@ -472,7 +485,6 @@ namespace XuanTools.UniPool.Collections
             return MaxPrimeArrayLength;
 
         }
-
 
         // This is the maximum prime smaller than Array.MaxArrayLength
         public const int MaxPrimeArrayLength = 0x7FEFFFFD;

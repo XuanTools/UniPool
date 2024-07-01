@@ -27,9 +27,9 @@ public static class UniPoolExtension
     }
 
     /// <summary>
-    /// Spawn the prefab and returns the the object spawned.
+    /// Spawn the prefab and returns the object spawned.
     /// </summary>
-    /// <param name="prefab">An registered object that you want to make spawn of.</param>
+    /// <param name="prefab">A registered object that you want to make spawn of.</param>
     /// <returns>Object spawned from pool.</returns>
     public static T Spawn<T>(this T prefab) where T : Component
     {
@@ -38,7 +38,7 @@ public static class UniPoolExtension
     /// <summary>
     /// Spawn the prefab and returns the object spawned.
     /// </summary>
-    /// <param name="prefab">An registered object that you want to make spawn of.</param>
+    /// <param name="prefab">A registered object that you want to make spawn of.</param>
     /// <param name="parent">Parent that will be assigned to the new object.</param>
     /// <returns>Object spawned from pool.</returns>
     public static T Spawn<T>(this T prefab, Transform parent) where T : Component
@@ -48,7 +48,7 @@ public static class UniPoolExtension
     /// <summary>
     /// Spawn the prefab and returns the object spawned.
     /// </summary>
-    /// <param name="prefab">An registered object that you want to make spawn of.</param>
+    /// <param name="prefab">A registered object that you want to make spawn of.</param>
     /// <param name="parent">Parent that will be assigned to the new object.</param>
     /// <param name="instantiateInWorldSpace">When you assign a parent Object, pass true to position the new object directly in world space. Pass false to set the Object’s position relative to its new parent.</param>
     /// <returns>Object spawned from pool.</returns>
@@ -59,7 +59,7 @@ public static class UniPoolExtension
     /// <summary>
     /// Spawn the prefab and returns the object spawned.
     /// </summary>
-    /// <param name="prefab">An registered object that you want to make spawn of.</param>
+    /// <param name="prefab">A registered object that you want to make spawn of.</param>
     /// <param name="position">Position for the new object.</param>
     /// <param name="rotation">Orientation of the new object.</param>
     /// <returns>Object spawned from pool.</returns>
@@ -70,7 +70,7 @@ public static class UniPoolExtension
     /// <summary>
     /// Spawn the prefab and returns the object spawned.
     /// </summary>
-    /// <param name="prefab">An registered object that you want to make spawn of.</param>
+    /// <param name="prefab">A registered object that you want to make spawn of.</param>
     /// <param name="position">Position for the new object.</param>
     /// <param name="rotation">Orientation of the new object.</param>
     /// <param name="parent">Parent that will be assigned to the new object.</param>
@@ -80,9 +80,9 @@ public static class UniPoolExtension
         return UniPoolManager.Spawn(prefab, position, rotation, parent);
     }
     /// <summary>
-    /// Spawn the prefab and returns the the object spawned.
+    /// Spawn the prefab and returns the object spawned.
     /// </summary>
-    /// <param name="prefab">An registered object that you want to make spawn of.</param>
+    /// <param name="prefab">A registered object that you want to make spawn of.</param>
     /// <returns>Object spawned from pool.</returns>
     public static GameObject Spawn(this GameObject prefab)
     {
@@ -91,7 +91,7 @@ public static class UniPoolExtension
     /// <summary>
     /// Spawn the prefab and returns the object spawned.
     /// </summary>
-    /// <param name="prefab">An registered object that you want to make spawn of.</param>
+    /// <param name="prefab">A registered object that you want to make spawn of.</param>
     /// <param name="parent">Parent that will be assigned to the new object.</param>
     /// <returns>Object spawned from pool.</returns>
     public static GameObject Spawn(this GameObject prefab, Transform parent)
@@ -101,7 +101,7 @@ public static class UniPoolExtension
     /// <summary>
     /// Spawn the prefab and returns the object spawned.
     /// </summary>
-    /// <param name="prefab">An registered object that you want to make spawn of.</param>
+    /// <param name="prefab">A registered object that you want to make spawn of.</param>
     /// <param name="parent">Parent that will be assigned to the new object.</param>
     /// <param name="instantiateInWorldSpace">When you assign a parent Object, pass true to position the new object directly in world space. Pass false to set the Object’s position relative to its new parent.</param>
     /// <returns>Object spawned from pool.</returns>
@@ -112,7 +112,7 @@ public static class UniPoolExtension
     /// <summary>
     /// Spawn the prefab and returns the object spawned.
     /// </summary>
-    /// <param name="prefab">An registered object that you want to make spawn of.</param>
+    /// <param name="prefab">A registered object that you want to make spawn of.</param>
     /// <param name="position">Position for the new object.</param>
     /// <param name="rotation">Orientation of the new object.</param>
     /// <returns>Object spawned from pool.</returns>
@@ -123,7 +123,7 @@ public static class UniPoolExtension
     /// <summary>
     /// Spawn the prefab and returns the object spawned.
     /// </summary>
-    /// <param name="prefab">An registered object that you want to make spawn of.</param>
+    /// <param name="prefab">A registered object that you want to make spawn of.</param>
     /// <param name="position">Position for the new object.</param>
     /// <param name="rotation">Orientation of the new object.</param>
     /// <param name="parent">Parent that will be assigned to the new object.</param>
@@ -134,24 +134,26 @@ public static class UniPoolExtension
     }
 
     /// <summary>
-    /// Spawn a specified number of prefab and returns the the list spawned.
+    /// Spawn a specified number of prefab and returns the list spawned.
     /// </summary>
-    /// <param name="prefab">An registered object that you want to make spawn of.</param>
-    /// <param name="count">Number you need to spawned.</param>
-    /// <returns>Object spawned from pool.</returns>
-    public static List<GameObject> SpawnList(this GameObject prefab, int count)
-    {
-        return UniPoolManager.SpawnList(prefab, count);
-    }
-
-    /// <summary>
-    /// Spawn a specified number of prefab and returns the the list spawned.
-    /// </summary>
-    /// <param name="prefab">An registered object that you want to make spawn of.</param>
-    /// <param name="count">Number you need to spawned.</param>
+    /// <param name="prefab">A registered object that you want to make spawn of.</param>
+    /// <param name="count">Number you need to spawn.</param>
     /// <param name="actionAfterGet">Action after object spawned.</param>
     /// <returns>Object spawned from pool.</returns>
-    public static List<GameObject> SpawnList(this GameObject prefab, int count, Action<GameObject> actionAfterGet)
+    public static List<T> SpawnList<T>(this T prefab, int count, Action<T> actionAfterGet = null)
+        where T : Component
+    {
+        return UniPoolManager.SpawnList(prefab, count, actionAfterGet);
+    }
+    /// <summary>
+    /// Spawn a specified number of prefab and returns the list spawned.
+    /// </summary>
+    /// <param name="prefab">A registered object that you want to make spawn of.</param>
+    /// <param name="count">Number you need to spawn.</param>
+    /// <param name="actionAfterGet">Action after object spawned.</param>
+    /// <returns>Object spawned from pool.</returns>
+    public static List<GameObject> SpawnList(this GameObject prefab, int count,
+        Action<GameObject> actionAfterGet = null)
     {
         return UniPoolManager.SpawnList(prefab, count, actionAfterGet);
     }
@@ -159,23 +161,25 @@ public static class UniPoolExtension
     /// <summary>
     /// Spawn a specified number of prefab to existing list.
     /// </summary>
-    /// <param name="prefab">An registered object that you want to make spawn of.</param>
+    /// <param name="prefab">A registered object that you want to make spawn of.</param>
     /// <param name="list">An existing list to spawn object</param>
-    /// <param name="count">Number you need to spawned.</param>
-    public static void SpawnToList(this GameObject prefab, List<GameObject> list, int count)
-    { 
-        UniPoolManager.SpawnToList(prefab, list, count);
+    /// <param name="count">Number you need to spawn.</param>
+    /// <param name="actionAfterGet">Action after object spawned.</param>
+    /// <returns>Object spawned from pool.</returns>
+    public static void SpawnToList<T>(this T prefab, List<T> list, int count, Action<T> actionAfterGet = null) where T : Component
+    {
+        UniPoolManager.SpawnToList(prefab, list, count, actionAfterGet);
     }
-
     /// <summary>
     /// Spawn a specified number of prefab to existing list.
     /// </summary>
-    /// <param name="prefab">An registered object that you want to make spawn of.</param>
+    /// <param name="prefab">A registered object that you want to make spawn of.</param>
     /// <param name="list">An existing list to spawn object</param>
-    /// <param name="count">Number you need to spawned.</param>
+    /// <param name="count">Number you need to spawn.</param>
     /// <param name="actionAfterGet">Action after object spawned.</param>
     /// <returns>Object spawned from pool.</returns>
-    public static void SpawnToList(this GameObject prefab, List<GameObject> list, int count, Action<GameObject> actionAfterGet)
+    public static void SpawnToList(this GameObject prefab, List<GameObject> list, int count,
+        Action<GameObject> actionAfterGet = null)
     {
         UniPoolManager.SpawnToList(prefab, list, count, actionAfterGet);
     }
@@ -215,7 +219,7 @@ public static class UniPoolExtension
     /// </summary>
     public static void RecycleAll<T>(this T prefab) where T : Component
     {
-        UniPoolManager.RecycleAll(prefab.gameObject);
+        UniPoolManager.RecycleAll(prefab);
     }
     /// <summary>
     /// Recycle all spawned object of the prefab to UniPoolManager.
@@ -230,7 +234,7 @@ public static class UniPoolExtension
     /// </summary>
     public static void RecycleAllImmediate<T>(this T prefab) where T : Component
     {
-        UniPoolManager.RecycleAllImmediate(prefab.gameObject);
+        UniPoolManager.RecycleAllImmediate(prefab);
     }
     /// <summary>
     /// Recycle all spawned object of the prefab to UniPoolManager immediately. It is recommended to use RecycleAll.

@@ -2,31 +2,36 @@
 
 [![Readme_EN](https://img.shields.io/badge/UniPool-Document-red)](https://github.com/XuanTools/UniPool/blob/main/README.md) [![license](https://img.shields.io/badge/license-MIT-green)](https://github.com/XuanTools/UniPool/blob/main/LICENSE)
 
-一个为Unity的GameObject打造的，简单易用、性能优秀的对象池管理工具。
+一个为Unity的GameObject打造的，简单易上手、性能优秀的对象池管理工具。
 
 > 在游戏中会出现大量重复的物体需要频繁的创建和销毁；比如子弹，敌人，成就列表的格子等；频繁的创建与删除物体会造成很大的开销。
 
 > UniPool能将需要频繁创建销毁的游戏对象缓存起来，将创建销毁行为替换成显示和隐藏，大大提高游戏运行效率。
 
-UniPool简单易用、性能优秀的对象池管理工具，包含以下内容。
+> 相比一般的对象池（比如Unity自带的ObjectPool），UniPool性能好得多，且更简单易上手.
+
+UniPool包含以下内容。
 
 * UniPool对象池系统，缓存游戏对象，提升运行效率
 * 单例类UniPoolManager，统一管理场景内物体的对象池
 * 包含大量方便易用的扩展方法，能够便捷地对物体进行对象池操作
 * 允许自定义地创建UniPool对象池，自定义委托，管理游戏物体的生成和回收
 
-UniPool包含以下独特的特性以提升性能或易用性。
+UniPool还拥有以下特性。
 
-* 延迟回收机制，优化同一帧内回收和获取大量物体时的性能
-* 批量操作方法，可以批量生成物体到集合中，优化集合操作的性能
+* 延迟回收机制，优化同一帧内回收并获取大量物体时的性能
+* 批量操作方法，可以批量生成物体到List中，优化集合操作的性能
 * 内部使用自定义集合类型HashPool，添加值、取值、判断包含等方法性能优秀
 * 支持UGUI物体，能够正确识别物体实际Transform类型并使用正确的转换操作
+
+UniPool 使用条件编译语法对 Unity 各个版本进行了适配，但最低需要 C# 6.0 语法，所以需要的 Unity 最低版本是Unity 2017.3（可能需要开启.NET 4.6实验选项），兼容性在Unity 2017及以上的LTS版本中经过验证。
 
 ## 目录
 
 - [快速入门](#快速入门)
 - [UniPool基础](#unipool基础)
 - [UniPoolManager](#unipoolmanager)
+- [扩展方法](#扩展方法)
 - [进阶](#进阶)
 - [安装](#安装)
 - [基准测试](#基准测试)
@@ -64,28 +69,17 @@ void TestUniPool()
 
 ## UniPool基础
 
-UniPool是一个为GameObject设计的简单易用的对象池。
+为什么要使用对象池？因为Instantiate()和Destroy()等方法会造成较大的性能开销，使用对象池能缓存游戏对象，提升运行效率。
 
-为什么要使用对象池？因为Instantiate()和Destroy()等方法会造成较大的性能开销，UniPool能缓存游戏对象，提升运行效率。
+UniPool是一个为GameObject设计的简单易用的对象池类型，类似Unity自带的ObjectPool，但功能更多、性能更好、扩展性更强。
 
-使用下面的构造方法为预制体创建UniPool对象池。
+使用UniPool类型需要引入XuanTools.UniPool命名空间，然后使用下面的构造方法为预制体创建UniPool对象池。
 
 ```
 // 为prefab物体创建一个对象池，初始容量10，最大容量1000
 var pool1 = new UniPool(prefab, 100, 1000);
 // UniPool各阶段的委托可以自定义，若传入null则将使用UniPool默认的委托
 var pool2 = new UniPool(prefab, 100, 1000, CreateFunc, ActionOnGet, ActionOnRelease, ActionOnDestroy);
-```
-
-UniPool内部使用HashPool\<GameObject>缓存生成的物体。
-
-HashPool是一个自定义的集合类型，是精简版本的HashSet，其Add、Remove和Contain等方法消耗很小。
-
-HashPool包含Get/GetToList等快速取值的方法，相比HashSet需要遍历或使用Linq，这些方法消耗更小。
-
-```
-// 精简版本的HashSet，包含更方便且消耗更小的取值函数
-public class HashPool<T> : ICollection<T>, IPool<T>
 ```
 
 可以使用下面的方法获取和回收物体，注意只能回收处于活动状态的物体（既已取出的物体），试图回收已回收的物体会引发一个错误。
@@ -250,7 +244,7 @@ UniPoolManager.DisposeAll(prefab)
 UniPoolManager.CacheRecycleAll();
 ```
 
-## 进阶
+## 扩展方法
 
 UniPool提供了许多易用的扩展方法，可以更优雅地调用UniPoolManager单例中的方法，无需导入命名空间即可使用。
 
@@ -273,7 +267,38 @@ UniPool提供了许多易用的扩展方法，可以更优雅地调用UniPoolMan
 | `UniPoolManager.DisposePooled(prefab)` | `prefab.DisposePooled()` |
 | `UniPoolManager.DisposeAll(prefab)` | `prefab.DisposeAll()` |
 
+注意：不是所有UniPoolManager中的静态方法都有对应的UniPoolExtension扩展方法，一些危险操作需要通过UniPoolManager进行。
+
+## 进阶
+
+了解更多UniPool特性与实现原理有助于理解和改进UniPool。
+
+### HashPool
+
+UniPool内部使用HashPool\<GameObject>缓存生成的物体。
+
+HashPool是一个自定义的集合类型，是精简版本的HashSet，具有以下优点。
+
+* 增删查改方法实现类似HashSet，消耗很小。
+
+* 包含快速取值的方法，相比HashSet需要遍历或使用Linq，这些方法消耗更小。
+
+* 可以进行批量取值并设置取值后回调函数，进一步减小集合操作消耗。
+
+由此可见HashPool是为UniPool量身打造的集合类型，完美满足UniPool场景需求。
+
+```
+// 精简版本的HashSet，包含更方便且消耗更小的取值函数
+public class HashPool<T> : ICollection<T>, IPool<T>
+```
+
+HashPool在命名空间XuanTools.UniPool.Collections中可见。
+
 ## 安装
+
+UniPool 官方支持的 unity版本（Unity >= 2017.3），但理论上您可以手动修改语法以支持更旧的版本。
+
+以下是几种可能的UniPool安装方式。
 
 ### 通过 git URL 安装
 
@@ -285,31 +310,37 @@ UniPool提供了许多易用的扩展方法，可以更优雅地调用UniPoolMan
 
 或添加`"com.xuantools.unipool": "https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool"`到`Packages/manifest.json`
 
-如果要设置目标版本，UniPool 使用*.*.*发布标签，因此您可以指定一个版本，如#0.1.0. 例如`https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool#0.1.0`
+如果要设置目标版本，UniPool 使用*.*.*发布标签，因此您可以指定一个版本，如#1.0.0. 例如`https://github.com/XuanTools/UniPool.git?path=Assets/Plugins/UniPool#1.0.0`
+
+### 通过unity资源包安装
+
+通过Releases页面选择指定UniPool版本，下载unity资源包到本地，并导入到您的项目中。
 
 ### 直接安装
 
-通过Git Clone该工程到本地，复制`Assets/Plugins/UniPool`文件夹下的所有内容到您的项目中。
+通过Git Clone此工程到本地，复制`Assets/Plugins/UniPool`文件夹下的所有内容到您的项目中。
+
+如果要设置目标版本，您可以通过git checkout命令以获取任何历史版本。
 
 ## 基准测试
 
-项目工程包含了一个基准测试场景，用于对比Instantiate、ObjectPool和UniPool之间的性能差异。
-
-同时还对比了UniPool中单独Spawn每一个物体以及使用SpawnList/SpawnToList之间的性能差异。
+项目工程包含了一个基准测试场景，每帧都生成指定数量的物体，并为其赋予随机坐标和旋转，用于对比Instantiate、ObjectPool和UniPool单独生成与批量生成之间的性能差异。
 
 以下是作者在Unity编辑器中进行基准测试测试得到的性能数据，仅供参考。
 
-测试设备CPU: Intel(R) Core(TM) i7-14650HX
+测试参数：每个项目时长5000ms，生成1000个正方形
+
+测试设备CPU：Intel(R) Core(TM) i7-14650HX
 
 | 项目 | 平均帧率 | 平均帧时长| 平均测试代码耗时 | 测试代码GC |
 | --- | --- | --- | --- | --- |
-| None | 1000fps+ | --- | --- | --- |
-| Instantiate | 51.6fps | 19.4ms | 7.7ms | 39.1KB |
-| ObjectPool | 182.4fps | 5.5ms | 3.3ms | 0B |
-| UniPool (Spawn) | 397.0fps | 2.5ms | 0.9ms | 0B |
-| UniPool (SpawnToList) | 481.4fps | 2.1ms | 0.5ms | 416B |
+| None | 1200fps+ | --- | --- | --- |
+| Instantiate | 55.8fps | 18.0ms | 6.8ms | 39.1KB |
+| ObjectPool | 193.4fps | 5.2ms | 3.2ms | 0B |
+| UniPool (Spawn) | 410.2fps | 2.4ms | 1.0ms | 0B |
+| UniPool (SpawnToList) | 534.0fps | 1.9ms | 0.5ms | 416B |
 
-在一帧当中回收并生成1000个物体只需要不足1ms的时间，这是来自UniPool的性能魔法！
+同时回收并生成1000个物体只需要不足1ms的时间，这是来自UniPool的性能魔法！
 
 您也可以在您的设备上进行此测试，以直观感受对比不同的物体生成代码之间的性能差异！
 
@@ -317,11 +348,11 @@ UniPool提供了许多易用的扩展方法，可以更优雅地调用UniPoolMan
 
 ## 性能
 
-UniPool的性能比一般的对象池的性能好得多。
+UniPool的性能比一般的对象池（比如Unity自带的ObjectPool）的性能好得多。
 
 * 一般的对象池可能会使用SetActive或其它方式回收物体，这会造成一定消耗。UniPool的扩展方法Recycle并不直接回收物体，而是将其缓存在UniPool中，在该帧LateUpdate时才会被真正的回收。因此如果回收一个物体，在同一帧又生成了一个物体，那么就不会引起回收造成的消耗，相当于直接重新分配该物体。
 
-* 一般的对象池内部使用List或其他.NET中的集合存储物体，并用其Contain等方法检查以保证物体回收的安全性，同时调用大量这些方法效率极低。而UniPool内部使用自定义的集合类型HashPool缓存生成的物体，其Add、Remove和Contain等方法消耗很小，能减轻重新分配大量物体的场景下集合操作造成的性能瓶颈。
+* 一般的对象池内部使用List或其他.NET中的集合存储物体，并用其Contain等方法检查以保证物体回收的安全性，同时大量调用这些方法效率极低。而UniPool内部使用自定义的集合类型HashPool缓存生成的物体，其Add、Remove和Contain等方法消耗很小，能减轻重新分配大量物体的场景下集合操作造成的性能瓶颈。
 
 * 一般的对象池只能存储与释放物体，开发者需要创建集合并编写代码以管理这些物体并正确释放。UniPool提供SpawnList与SpawnToList方法，可以直接将物体批量生成到List中，这可以简化物体管理，并避免多次获取物体添加到List造成的额外开销。
 
